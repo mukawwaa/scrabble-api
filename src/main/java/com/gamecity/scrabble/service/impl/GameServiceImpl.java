@@ -105,13 +105,17 @@ public class GameServiceImpl implements GameService
         Integer duration = Long.valueOf(DateUtils.nowAsUnixTime() - board.getLastUpdateDate()).intValue();
         PlayHelper helper = new PlayHelper(board);
 
-        locateRackTiles(helper, rack);
-        findWords(helper);
-        findUnvalidatedWords(helper);
-        linkNewWords(helper);
-        addScore(helper);
-        logWords(helper, board, duration);
-        updateUserScore(helper);
+        boolean isUsed = rack.getTiles().stream().anyMatch(tile -> tile.isUsed());
+        if (isUsed)
+        {
+            locateRackTiles(helper, rack);
+            findWords(helper);
+            findUnvalidatedWords(helper);
+            linkNewWords(helper);
+            addScore(helper);
+            logWords(helper, board, duration);
+            updateUserScore(helper);
+        }
         assignNextUser(board);
         updateBoard(helper, rack);
     }

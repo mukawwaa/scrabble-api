@@ -11,6 +11,8 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,7 @@ import com.gamecity.scrabble.service.DictionaryService;
 @Service(value = "dictionaryService")
 public class DictionaryServiceImpl implements DictionaryService
 {
+    private static final Logger logger = LoggerFactory.getLogger(DictionaryService.class);
     private static final Map<String, List<String>> wordMap = new HashMap<String, List<String>>();
     private static List<String> languages;
 
@@ -54,7 +57,7 @@ public class DictionaryServiceImpl implements DictionaryService
         }
         catch (Exception e)
         {
-            e.printStackTrace();
+            logger.error("Exception : {} {} ", e.getMessage(), e);
         }
     }
 
