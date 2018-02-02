@@ -24,6 +24,7 @@ import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.TileRule;
 import com.gamecity.scrabble.model.BoardCell;
 import com.gamecity.scrabble.model.BoardContent;
+import com.gamecity.scrabble.model.BoardPlayer;
 import com.gamecity.scrabble.model.BoardTile;
 import com.gamecity.scrabble.model.Player;
 import com.gamecity.scrabble.model.Rack;
@@ -86,6 +87,39 @@ public class ContentServiceImpl implements ContentService
     }
 
     @Override
+    public BoardPlayer getPlayers(Long boardId, Integer orderNo)
+    {
+        Board board = boardService.get(boardId);
+        if (orderNo > board.getOrderNo())
+        {
+            return null;
+        }
+
+        BoardPlayer player = redisRepository.getBoardPlayers(boardId, orderNo);
+        if (player == null)
+        {
+            return null;
+        }
+
+        return player;
+    }
+
+    @Override
+    public void updatePlayers(Long boardId, Integer orderNo)
+    {
+        Board board = boardService.get(boardId);
+        BoardPlayer player = new BoardPlayer();
+        player.setBoardId(boardId);
+        player.setOrderNo(orderNo);
+        player.setCurrentUserId(board.getCurrentUser().getId());
+        player.setCurrentUsername(board.getCurrentUser().getName());
+
+        List<Player> activePlayers = getActivePlayers(board);
+        player.setPlayers(activePlayers);
+        redisRepository.sendBoardPlayers(player);
+    }
+
+    @Override
     public BoardContent getContent(Long boardId, Integer orderNo)
     {
         Board board = boardService.get(boardId);
@@ -117,8 +151,6 @@ public class ContentServiceImpl implements ContentService
         List<BoardCell> cells = getCells(boardId, board.getRule().getId());
         content.setCells(cells);
 
-        List<Player> players = getPlayers(board);
-        content.setPlayers(players);
         redisRepository.sendBoardContent(content);
     }
 
@@ -200,10 +232,10 @@ public class ContentServiceImpl implements ContentService
         return Arrays.asList(cells);
     }
 
-    private List<Player> getPlayers(Board board)
+    private List<Player> getActivePlayers(Board board)
     {
         List<BoardUser> activeUsers = boardUserService.loadAllActiveUsers(board.getId());
-        Function<BoardUser, Player> mapper = player -> new Player(player.getUser(), player.getScore(), board.getCurrentUser().getId().equals(player.getId()));
+        Function<BoardUser, Player> mapper = boardUser -> new Player(boardUser);
         return activeUsers.stream().map(mapper).collect(Collectors.toList());
     }
 }

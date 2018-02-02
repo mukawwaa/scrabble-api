@@ -24,6 +24,7 @@ public class GameResource extends AbstractResource
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(Rack rack)
     {
-        return build(gameService.play(rack));
+        gameService.play(rack);
+        return build();
     }
 }

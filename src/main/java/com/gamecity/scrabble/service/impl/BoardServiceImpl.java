@@ -7,19 +7,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.BoardDao;
+import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardStatus;
 import com.gamecity.scrabble.entity.BoardUser;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.User;
-import com.gamecity.scrabble.model.BoardContent;
 import com.gamecity.scrabble.model.BoardParams;
+import com.gamecity.scrabble.model.Player;
 import com.gamecity.scrabble.service.BoardService;
 import com.gamecity.scrabble.service.BoardUserService;
-import com.gamecity.scrabble.service.ContentService;
-import com.gamecity.scrabble.service.GameService;
 import com.gamecity.scrabble.service.RuleService;
 import com.gamecity.scrabble.service.UserService;
 import com.gamecity.scrabble.service.exception.GameError;
@@ -40,10 +38,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     private RuleService ruleService;
 
     @Autowired
-    private GameService gameService;
-
-    @Autowired
-    private ContentService contentService;
+    private RedisRepository redisRepository;
 
     @Override
     public Board checkBoardAvailable(Long id)
@@ -75,20 +70,20 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         User user = userService.checkValidUser(params.getUserId());
 
         Board board = new Board(user, rule, params.getName(), params.getUserCount(), params.getDuration());
-        createBoardUser(board, user, Constants.BoardSettings.FIRST_ROUND);
         save(board);
-        contentService.updateContent(board.getId(), board.getOrderNo());
+
+        createBoardUser(board, user);
 
         return board;
     }
 
     @Override
     @Transactional
-    public Integer join(Long boardId, Long userId)
+    public void join(Long boardId, Long userId)
     {
         ValidationUtils.validateParameters(boardId, userId);
 
-        User user = userService.checkValidUser(userId);
+        userService.checkValidUser(userId);
         Board board = checkBoardAvailable(boardId);
 
         BoardUser boardUser = boardUserService.loadByUserId(boardId, userId);
@@ -102,23 +97,20 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new GameException(GameError.GAME_IS_STARTED);
         }
 
-        BoardContent content = contentService.getContent(boardId, board.getOrderNo());
-        Integer userCount = content.getPlayers().size() + 1;
-
-        createBoardUser(board, user, userCount);
-        checkReady(board, userCount);
-        save(board);
-
-        return board.getOrderNo();
+        Player player = new Player();
+        player.setBoardId(boardId);
+        player.setEnabled(true);
+        player.setUserId(userId);
+        redisRepository.updatePlayer(player);
     }
 
     @Override
     @Transactional
-    public Integer leave(Long boardId, Long userId)
+    public void leave(Long boardId, Long userId)
     {
         ValidationUtils.validateParameters(boardId, userId);
 
-        User user = userService.checkValidUser(userId);
+        userService.checkValidUser(userId);
         Board board = checkBoardAvailable(boardId);
 
         BoardUser boardUser = boardUserService.loadByUserId(boardId, userId);
@@ -137,11 +129,25 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new GameException(GameError.OWNER_CANNOT_LEAVE_BOARD);
         }
 
-        removeBoardUser(boardUser, user);
-        save(board);
-        contentService.updateContent(boardId, board.getOrderNo());
+        Player player = new Player();
+        player.setBoardId(boardId);
+        player.setEnabled(true);
+        player.setUserId(userId);
+        redisRepository.updatePlayer(player);
+    }
 
-        return board.getOrderNo();
+    @Override
+    public void createBoardUser(Long boardId, Long userId)
+    {
+        createBoardUser(get(boardId), userService.get(userId));
+    }
+
+    @Override
+    public void removeBoardUser(Long boardId, Long userId)
+    {
+        BoardUser boardUser = boardUserService.loadByUserId(boardId, userId);
+        boardUser.setLeaveDate(DateUtils.nowAsUnixTime());
+        boardUserService.save(boardUser);
     }
 
     @Override
@@ -164,31 +170,10 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         return true;
     }
 
-    // ---------------------------------------------------- private methods ----------------------------------------------------
-
-    private void createBoardUser(Board board, User user, Integer currentOrderNo)
+    private void createBoardUser(Board board, User user)
     {
-        BoardUser boardUser = new BoardUser(board, user, currentOrderNo);
+        BoardUser boardUser = new BoardUser(board, user);
         boardUser.setJoinDate(DateUtils.nowAsUnixTime());
         boardUserService.save(boardUser);
-    }
-
-    private void removeBoardUser(BoardUser boardUser, User user)
-    {
-        boardUser.setLeaveDate(DateUtils.nowAsUnixTime());
-        boardUserService.save(boardUser);
-    }
-
-    private void checkReady(Board board, Integer userCount)
-    {
-        // start the game if all users have joined
-        if (userCount == board.getUserCount())
-        {
-            gameService.start(board);
-        }
-        else
-        {
-            contentService.updateContent(board.getId(), board.getOrderNo());
-        }
     }
 }

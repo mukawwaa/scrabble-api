@@ -31,7 +31,8 @@ public class BoardResource extends BaseResource<Board, BoardService>
     @Produces(MediaType.APPLICATION_JSON)
     public Response join(@PathParam("boardId") Long boardId, @PathParam("userId") Long userId)
     {
-        return build(baseService.join(boardId, userId));
+        baseService.join(boardId, userId);
+        return build();
     }
 
     @POST
@@ -39,7 +40,8 @@ public class BoardResource extends BaseResource<Board, BoardService>
     @Produces(MediaType.APPLICATION_JSON)
     public Response leave(@PathParam("boardId") Long boardId, @PathParam("userId") Long userId)
     {
-        return build(baseService.leave(boardId, userId));
+        baseService.leave(boardId, userId);
+        return build();
     }
 
     @GET

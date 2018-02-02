@@ -68,7 +68,7 @@ public class GameServiceImpl implements GameService
 
     @Override
     @Transactional
-    public Integer play(Rack rack)
+    public void play(Rack rack)
     {
         ValidationUtils.validateParameters(rack, rack.getBoardId(), rack.getUserId(), rack.getTiles());
 
@@ -81,8 +81,6 @@ public class GameServiceImpl implements GameService
         validateRack(rack);
         calculateScore(board, rack);
         contentService.updateContent(board.getId(), board.getOrderNo());
-
-        return board.getOrderNo();
     }
 
     // ---------------------------------------------------- private methods ----------------------------------------------------

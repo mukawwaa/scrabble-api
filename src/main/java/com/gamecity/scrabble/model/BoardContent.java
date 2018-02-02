@@ -13,7 +13,6 @@ public class BoardContent implements Serializable
 	private static final long serialVersionUID = 8509578828710644245L;
 	private Long boardId;
 	private Long ruleId;
-	private List<Player> players;
 	private List<BoardCell> cells;
 	private BoardStatus status;
 	private Integer orderNo;
@@ -37,16 +36,6 @@ public class BoardContent implements Serializable
 	public void setRuleId(Long ruleId)
 	{
 		this.ruleId = ruleId;
-	}
-
-	public List<Player> getPlayers()
-	{
-		return players;
-	}
-
-	public void setPlayers(List<Player> players)
-	{
-		this.players = players;
 	}
 
 	public List<BoardCell> getCells()

@@ -2,7 +2,7 @@
 insert into users (username, name, surname, email, password, enabled) values ('Edi', 'Test', 'User', 'tester@mailinator.com', '$2a$10$kL2cVFyQ9FIRm390RG8JienR/nJVTK8g6Lb0FH0K5Y4AEsE1zZLVm', 1)
 insert into users (username, name, surname, email, password, enabled) values ('Budu', 'Player', 'User', 'player@mailinator.com', '$2a$10$kL2cVFyQ9FIRm390RG8JienR/nJVTK8g6Lb0FH0K5Y4AEsE1zZLVm', 1)
 insert into users (username, name, surname, email, password, enabled) values ('admin', 'Admin', 'User', 'admin@mailinator.com', '$2a$10$kL2cVFyQ9FIRm390RG8JienR/nJVTK8g6Lb0FH0K5Y4AEsE1zZLVm', 1)
-insert into users (username, name, surname, email, password, enabled) values ('redis_user', 'Redis', 'User', 'redis@mailinator.com', '$2a$10$WKRgndXF/EdHqULv5gjM.enxlcdigNTKxzibxmq6fgJVrO9R4sOtS', 1)
+insert into users (username, name, surname, email, password, enabled) values ('redis_user', 'Redis', 'User', 'redis@mailinator.com', '$2a$10$kL2cVFyQ9FIRm390RG8JienR/nJVTK8g6Lb0FH0K5Y4AEsE1zZLVm', 1)
 -- application roles
 insert into roles (rolename, enabled) values ('ROLE_USER', 1)
 insert into roles (rolename, enabled) values ('ROLE_ADMIN', 1)

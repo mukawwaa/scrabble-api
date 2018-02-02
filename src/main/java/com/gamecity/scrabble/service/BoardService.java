@@ -13,9 +13,13 @@ public interface BoardService extends BaseService<Board>
 
     Board create(BoardParams params);
 
-    Integer join(Long boardId, Long userId);
+    void join(Long boardId, Long userId);
 
-    Integer leave(Long boardId, Long userId);
+    void leave(Long boardId, Long userId);
+
+    void createBoardUser(Long boardId, Long userId);
+
+    void removeBoardUser(Long boardId, Long userId);
 
     List<Board> getActiveBoards();
 

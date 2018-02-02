@@ -7,5 +7,5 @@ public interface GameService
 {
     void start(Board board);
 
-    Integer play(Rack rack);
+    void play(Rack rack);
 }

@@ -10,6 +10,7 @@ public enum GameError
     NOT_YOUR_TURN(1006, "It is not your turn!"), //
     CELL_IS_NOT_EMPTY(1007, "Cell [{0},{1}] is not empty!"), //
     OWNER_CANNOT_LEAVE_BOARD(1008, "Board owner cannot leave the board"), //
+    UNKNOWN_ACTION_TYPE(1009, "{0} is an unknown action type!"), //
     NOT_ON_BOARD(1010, "You are not on board {0}!"), //
     GAME_IS_STARTED(1011, "The game has already started!"), //
     WORD_IS_NOT_DEFINED(1012, "Words {0} are not defined in {1} language!"), //

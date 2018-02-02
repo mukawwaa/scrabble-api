@@ -5,22 +5,42 @@ import java.io.Serializable;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
-import com.gamecity.scrabble.entity.User;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.gamecity.scrabble.entity.BoardUser;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
 public class Player implements Serializable
 {
     private static final long serialVersionUID = 4440513193729254918L;
+    private Long boardId;
     private Long userId;
     private String username;
     private Integer score;
+    private boolean enabled;
     private boolean ownTurn;
 
-    public Player(User user, Integer score, boolean ownTurn)
+    public Player()
     {
-        this.userId = user.getId();
-        this.username = user.getUsername();
-        this.score = score;
-        this.ownTurn = ownTurn;
+        super();
+    }
+
+    public Player(BoardUser boardUser)
+    {
+        this.boardId = boardUser.getBoard().getId();
+        this.userId = boardUser.getUser().getId();
+        this.username = boardUser.getUser().getUsername();
+        this.score = boardUser.getScore();
+        this.ownTurn = boardUser.getUser().getId().equals(boardUser.getBoard().getCurrentUser().getId());
+    }
+
+    public Long getBoardId()
+    {
+        return boardId;
+    }
+
+    public void setBoardId(Long boardId)
+    {
+        this.boardId = boardId;
     }
 
     public Long getUserId()
@@ -51,6 +71,16 @@ public class Player implements Serializable
     public void setScore(Integer score)
     {
         this.score = score;
+    }
+
+    public boolean isEnabled()
+    {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled)
+    {
+        this.enabled = enabled;
     }
 
     public boolean isOwnTurn()

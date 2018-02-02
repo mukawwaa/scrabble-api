@@ -7,6 +7,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -28,7 +29,7 @@ public class BoardUser extends AbstractEntity
     @ManyToOne(targetEntity = User.class)
     private User user;
 
-    @Column(name = "order_no", nullable = false)
+    @Column(name = "order_no")
     private Integer orderNo;
 
     @Column(name = "score", nullable = false)
@@ -40,16 +41,18 @@ public class BoardUser extends AbstractEntity
     @Column(name = "leave_date")
     private Long leaveDate;
 
+    @Transient
+    private boolean enabled;
+
     public BoardUser()
     {
         // base constructor
     }
 
-    public BoardUser(Board board, User user, Integer orderNo)
+    public BoardUser(Board board, User user)
     {
         this.board = board;
         this.user = user;
-        this.orderNo = orderNo;
     }
 
     public Board getBoard()
@@ -110,6 +113,11 @@ public class BoardUser extends AbstractEntity
     public void setLeaveDate(Long leaveDate)
     {
         this.leaveDate = leaveDate;
+    }
+
+    public boolean isEnabled()
+    {
+        return leaveDate == null;
     }
 
     @Override

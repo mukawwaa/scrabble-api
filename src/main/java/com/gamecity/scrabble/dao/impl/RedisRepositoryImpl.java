@@ -12,19 +12,36 @@ import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.BoardChat;
 import com.gamecity.scrabble.model.BoardContent;
+import com.gamecity.scrabble.model.BoardPlayer;
 import com.gamecity.scrabble.model.ChatMessage;
+import com.gamecity.scrabble.model.Player;
 
 @Repository(value = "redisRepository")
 public class RedisRepositoryImpl implements RedisRepository
 {
     @Autowired
-    private RedisTemplate redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void sendChatMessage(BoardChat chat)
     {
-        redisTemplate.boundListOps(Constants.RedisListener.BOARD_CHAT + ":" + chat.getBoard().getId()).rightPush(new ChatMessage(chat));
-        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_CHAT, chat);
+        ChatMessage chatMessage = new ChatMessage(chat);
+        redisTemplate.boundListOps(Constants.RedisListener.BOARD_CHAT + ":" + chatMessage.getBoardId()).rightPush(chatMessage);
+        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_CHAT, chatMessage);
+    }
+
+    @Override
+    public void updatePlayer(Player player)
+    {
+        redisTemplate.boundListOps(Constants.RedisListener.BOARD_USER + ":" + player.getBoardId()).rightPush(player);
+        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_USER, player);
+    }
+
+    @Override
+    public void sendBoardPlayers(BoardPlayer player)
+    {
+        redisTemplate.boundListOps(Constants.RedisListener.BOARD_PLAYERS + ":" + player.getBoardId()).rightPush(player);
+        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_PLAYERS, player);
     }
 
     @Override
@@ -37,14 +54,21 @@ public class RedisRepositoryImpl implements RedisRepository
     @Override
     public List<ChatMessage> getChatMessages(Long boardId, Integer index)
     {
-        BoundListOperations<String, ChatMessage> chats = redisTemplate.boundListOps(Constants.RedisListener.BOARD_CHAT + ":" + boardId);
-        return chats.range(index - 1, -1).stream().collect(Collectors.toList());
+        BoundListOperations<String, Object> chats = redisTemplate.boundListOps(Constants.RedisListener.BOARD_CHAT + ":" + boardId);
+        return chats.range(index - 1, -1).stream().map(item -> (ChatMessage) item).collect(Collectors.toList());
+    }
+
+    @Override
+    public BoardPlayer getBoardPlayers(Long boardId, Integer orderNo)
+    {
+        BoundListOperations<String, Object> contents = redisTemplate.boundListOps(Constants.RedisListener.BOARD_PLAYERS + ":" + boardId);
+        return (BoardPlayer) contents.range(orderNo, -1).stream().findFirst().get();
     }
 
     @Override
     public BoardContent getBoardContent(Long boardId, Integer orderNo)
     {
-        BoundListOperations<String, BoardContent> contents = redisTemplate.boundListOps(Constants.RedisListener.BOARD_CONTENT + ":" + boardId);
-        return contents.range(orderNo, -1).stream().findFirst().get();
+        BoundListOperations<String, Object> contents = redisTemplate.boundListOps(Constants.RedisListener.BOARD_CONTENT + ":" + boardId);
+        return (BoardContent) contents.range(orderNo, -1).stream().findFirst().get();
     }
 }

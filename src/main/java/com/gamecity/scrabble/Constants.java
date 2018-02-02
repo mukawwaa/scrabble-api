@@ -9,7 +9,7 @@ public interface Constants
     String BASE_APP_SIGNING_KEY = "BASE_APP_SIGNING_KEY";
     String BASE_APP_AUTHORIZATION_TYPE = "Basic";
     Integer TOKEN_VALIDITY_SECONDS = 60 * 100;
-    
+
     interface Headers
     {
         String ALLOW_ORIGIN = "Access-Control-Allow-Origin";
@@ -34,6 +34,13 @@ public interface Constants
     {
         String BOARD_CHAT = "BOARD_CHAT";
         String BOARD_CONTENT = "BOARD_CONTENT";
+        String BOARD_USER = "BOARD_USER";
+        String BOARD_PLAYERS = "BOARD_PLAYERS";
+
+        interface Method
+        {
+            String RECEIVE_USER_UPDATE = "receiveUserUpdate";
+        }
     }
 
     interface BoardSettings
@@ -45,6 +52,10 @@ public interface Constants
     {
 
         String CREATE_DROP = "create-drop";
-        
+    }
+
+    interface KafkaTopic
+    {
+        String BOARD_ACTION = "BOARD_ACTION";
     }
 }

@@ -20,6 +20,14 @@ public class ContentResource extends AbstractResource
     private ContentService contentService;
 
     @GET
+    @Path("/players/orderNo/{orderNo}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPlayers(@PathParam("boardId") Long boardId, @PathParam("orderNo") Integer orderNo)
+    {
+        return build(contentService.getPlayers(boardId, orderNo));
+    }
+
+    @GET
     @Path("/orderNo/{orderNo}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getContent(@PathParam("boardId") Long boardId, @PathParam("orderNo") Integer orderNo)
