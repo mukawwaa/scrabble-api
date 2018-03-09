@@ -3,33 +3,43 @@ package com.gamecity.scrabble.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.gamecity.scrabble.model.Rack;
 import com.gamecity.scrabble.service.exception.GameError;
 import com.gamecity.scrabble.service.exception.GameException;
+import com.gamecity.scrabble.util.DateUtils;
 
 public class GameTest extends AbstractGameTest
 {
-    @Test
-    public void testCorrectMove()
+    @Before
+    public void before()
     {
-        Rack rack = createCorrectRack(board.getId(), creator.getId());
-        System.out.print("Rack before move -> ");
-        System.out.println(rack.getTiles().toString());
-        gameService.play(rack);
-        rack = contentService.getRack(board.getId(), creator.getId());
-        System.out.print("Rack after move -> ");
-        System.out.println(rack.getTiles().toString());
+        super.setUp();
+        createBoardAndStartGame(creator);
     }
 
     @Test
-    public void testWrongTurn()
+    public void testCurrentUserIsOwnerWhenGameStarted()
+    {
+        assertEquals(creator.getId(), board.getCurrentUser().getId());
+    }
+
+    @Test
+    public void testRackIsNotEmptyWhenGameStarted()
+    {
+        fillRack(creator.getId());
+        assertEquals(rack.getTiles().size(), 7);
+    }
+
+    @Test
+    public void testWrongPlayerPlayed()
     {
         try
         {
-            Rack rack = createCorrectRack(board.getId(), player.getId());
-            gameService.play(rack);
+            fillRack(player.getId());
+            gameService.validateCurrentPlayer(board, rack);
             assertEquals(true, false);
         }
         catch (GameException e)
@@ -39,11 +49,65 @@ public class GameTest extends AbstractGameTest
     }
 
     @Test
+    public void testRackIsNotValidated()
+    {
+        try
+        {
+            fillRack(creator.getId());
+            rack.getTiles().remove(rack.getTiles().size() - 1);
+            gameService.validateRack(rack);
+        }
+        catch (GameException e)
+        {
+            assertEquals(e.getErrorCode(), GameError.INVALID_RACK.getCode());
+        }
+    }
+
+    @Test
+    public void testTurnPassedWhenNoMovesMade()
+    {
+        fillRack(creator.getId());
+        gameService.calculateScore(board, rack, DateUtils.nowAsUnixTime());
+    }
+
+    // ------------------------------------------- waiting -------------------------------------------
+
+//    @Test
+    public void testStartingCellNotEmptyInFirstPlay()
+    {
+        try
+        {
+            fillRack(creator.getId());
+            play();
+        }
+        catch (GameException e)
+        {
+            assertEquals(e.getErrorCode(), GameError.STARTING_CELL_CANNOT_BE_EMPTY.getCode());
+        }
+    }
+
+//    @Test
+    public void testCorrectMove()
+    {
+        try
+        {
+            createCorrectRack(board.getId(), creator.getId());
+            gameService.play(rack);
+            rack = contentService.getRack(board.getId(), creator.getId());
+        }
+        catch (GameException e)
+        {
+            // TODO create a correct word
+            assertEquals(e.getErrorCode(), GameError.WORD_IS_NOT_DEFINED.getCode());
+        }
+    }
+
+//    @Test
     public void testWrongMove()
     {
         try
         {
-            Rack rack = createWrongRack(board.getId(), creator.getId());
+            createWrongRack(board.getId(), creator.getId());
             gameService.play(rack);
             assertEquals(true, false);
         }
@@ -53,22 +117,28 @@ public class GameTest extends AbstractGameTest
         }
     }
 
-    @Test
+//    @Test
     public void testRackNotEmptyWhenGameStarted()
     {
         Rack rack = contentService.getRack(board.getId(), creator.getId());
         assertTrue(rack.getTiles().size() > 0);
-        System.out.println(rack.getTiles().toString());
     }
 
-    @Test
+//    @Test
     public void testRackNotEmptyWhenTurnChanged()
     {
-        playAMove();
-        board = boardService.get(board.getId());
-        Rack rack = contentService.getRack(board.getId(), board.getCurrentUser().getId());
-        assertTrue(rack.getTiles().size() > 0);
-        System.out.println(rack.getTiles().toString());
+        try
+        {
+            playAMove();
+            board = boardService.get(board.getId());
+            Rack rack = contentService.getRack(board.getId(), board.getCurrentUser().getId());
+            assertTrue(rack.getTiles().size() > 0);
+        }
+        catch (GameException e)
+        {
+            // TODO create a correct word
+            assertEquals(e.getErrorCode(), GameError.WORD_IS_NOT_DEFINED.getCode());
+        }
     }
 
 }

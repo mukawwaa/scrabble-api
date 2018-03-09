@@ -25,7 +25,7 @@ public abstract class AbstractServiceTest extends AbstractTestConfiguration
         return userService.get(PLAYER_ID);
     }
 
-    protected User getAdminUser()
+    protected User getAdmin()
     {
         return userService.get(ADMIN_ID);
     }
@@ -33,5 +33,17 @@ public abstract class AbstractServiceTest extends AbstractTestConfiguration
     protected Rule getDefaultRule()
     {
         return ruleService.get(DEFAULT_RULE_ID);
+    }
+
+    protected void sleep(int seconds)
+    {
+        try
+        {
+            Thread.sleep(seconds * 1000);
+        }
+        catch (InterruptedException e)
+        {
+            // nothing to do
+        }
     }
 }

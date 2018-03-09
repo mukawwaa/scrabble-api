@@ -1,6 +1,5 @@
 package com.gamecity.scrabble.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -17,8 +16,8 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 
 import com.gamecity.scrabble.Constants;
+import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.listener.RedisListener;
-import com.gamecity.scrabble.model.Player;
 
 @Configuration
 @EnableCaching
@@ -30,14 +29,13 @@ public class CacheConfig extends CachingConfigurerSupport
     @Value("${redis.port}")
     private Integer redisPort;
 
-    @Autowired
-    private RedisListener redisListener;
-
     @Bean
     public JedisConnectionFactory connectionFactory()
     {
         RedisStandaloneConfiguration redisConfiguration = new RedisStandaloneConfiguration(redisHost, redisPort);
-        return new JedisConnectionFactory(redisConfiguration);
+        JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory(redisConfiguration);
+        jedisConnectionFactory.afterPropertiesSet();
+        return jedisConnectionFactory;
     }
 
     @Bean
@@ -46,23 +44,27 @@ public class CacheConfig extends CachingConfigurerSupport
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<String, Object>();
         redisTemplate.setConnectionFactory(connectionFactory);
         redisTemplate.setDefaultSerializer(new GenericJackson2JsonRedisSerializer());
+        redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
 
     @Bean
     public RedisCacheManager cacheManager(JedisConnectionFactory connectionFactory)
     {
-        return RedisCacheManager.create(connectionFactory);
+        RedisCacheManager cacheManager = RedisCacheManager.create(connectionFactory);
+        cacheManager.afterPropertiesSet();
+        return cacheManager;
     }
 
     @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(JedisConnectionFactory connectionFactory)
+    public RedisMessageListenerContainer redisMessageListenerContainer(JedisConnectionFactory connectionFactory, RedisListener redisListener)
     {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(
-            messageListenerAdapter(redisListener, Constants.RedisListener.Method.RECEIVE_USER_UPDATE, Player.class),
-            new PatternTopic(Constants.RedisListener.BOARD_USER));
+            messageListenerAdapter(redisListener, Constants.RedisListener.Method.RECEIVE_USER_UPDATE, BoardUserHistory.class),
+            new PatternTopic(Constants.RedisListener.BOARD_USER_HISTORY));
+        container.afterPropertiesSet();
         return container;
     }
 

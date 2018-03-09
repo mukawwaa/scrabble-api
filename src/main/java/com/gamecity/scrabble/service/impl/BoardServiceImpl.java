@@ -7,22 +7,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.BoardDao;
 import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardStatus;
-import com.gamecity.scrabble.entity.BoardUser;
+import com.gamecity.scrabble.entity.BoardUserHistory;
+import com.gamecity.scrabble.entity.PlayerStatus;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.User;
 import com.gamecity.scrabble.model.BoardParams;
-import com.gamecity.scrabble.model.Player;
 import com.gamecity.scrabble.service.BoardService;
-import com.gamecity.scrabble.service.BoardUserService;
+import com.gamecity.scrabble.service.BoardUserHistoryService;
+import com.gamecity.scrabble.service.ContentService;
+import com.gamecity.scrabble.service.GameService;
 import com.gamecity.scrabble.service.RuleService;
 import com.gamecity.scrabble.service.UserService;
 import com.gamecity.scrabble.service.exception.GameError;
 import com.gamecity.scrabble.service.exception.GameException;
-import com.gamecity.scrabble.util.DateUtils;
 import com.gamecity.scrabble.util.ValidationUtils;
 
 @Service(value = "boardService")
@@ -32,13 +34,19 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     private UserService userService;
 
     @Autowired
-    private BoardUserService boardUserService;
-
-    @Autowired
     private RuleService ruleService;
 
     @Autowired
+    private ContentService contentService;
+
+    @Autowired
+    private GameService gameService;
+
+    @Autowired
     private RedisRepository redisRepository;
+
+    @Autowired
+    private BoardUserHistoryService boardUserHistoryService;
 
     @Override
     public Board checkBoardAvailable(Long id)
@@ -67,12 +75,20 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     public Board create(BoardParams params)
     {
         Rule rule = ruleService.get(params.getRuleId());
-        User user = userService.checkValidUser(params.getUserId());
+        User user = userService.validateUser(params.getUserId());
 
-        Board board = new Board(user, rule, params.getName(), params.getUserCount(), params.getDuration());
+        Board board = new Board();
+        board.setCurrentUser(user);
+        board.setDuration(params.getDuration());
+        board.setName(params.getName());
+        board.setOrderNo(Constants.BoardSettings.DEFAULT_ORDER);
+        board.setOwner(user);
+        board.setRule(rule);
+        board.setStatus(BoardStatus.WAITING_PLAYERS);
+        board.setUserCount(params.getUserCount());
         save(board);
 
-        createBoardUser(board, user);
+        createBoardUserHistory(board.getId(), user.getId(), PlayerStatus.JOINED);
 
         return board;
     }
@@ -83,11 +99,11 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     {
         ValidationUtils.validateParameters(boardId, userId);
 
-        userService.checkValidUser(userId);
+        userService.validateUser(userId);
         Board board = checkBoardAvailable(boardId);
 
-        BoardUser boardUser = boardUserService.loadByUserId(boardId, userId);
-        if (boardUser != null)
+        BoardUserHistory boardUserHistory = boardUserHistoryService.loadByUserId(boardId, userId);
+        if (boardUserHistory != null && PlayerStatus.JOINED.equals(boardUserHistory.getStatus()))
         {
             throw new GameException(GameError.ALREADY_ON_BOARD, boardId);
         }
@@ -97,11 +113,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new GameException(GameError.GAME_IS_STARTED);
         }
 
-        Player player = new Player();
-        player.setBoardId(boardId);
-        player.setEnabled(true);
-        player.setUserId(userId);
-        redisRepository.updatePlayer(player);
+        createBoardUserHistory(boardId, userId, PlayerStatus.JOINED);
     }
 
     @Override
@@ -110,11 +122,11 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     {
         ValidationUtils.validateParameters(boardId, userId);
 
-        userService.checkValidUser(userId);
+        userService.validateUser(userId);
         Board board = checkBoardAvailable(boardId);
 
-        BoardUser boardUser = boardUserService.loadByUserId(boardId, userId);
-        if (boardUser == null)
+        BoardUserHistory boardUserHistory = boardUserHistoryService.loadByUserId(boardId, userId);
+        if (boardUserHistory == null || PlayerStatus.LEFT.equals(boardUserHistory.getStatus()))
         {
             throw new GameException(GameError.NOT_ON_BOARD);
         }
@@ -129,37 +141,43 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new GameException(GameError.OWNER_CANNOT_LEAVE_BOARD);
         }
 
-        Player player = new Player();
-        player.setBoardId(boardId);
-        player.setEnabled(true);
-        player.setUserId(userId);
-        redisRepository.updatePlayer(player);
+        createBoardUserHistory(boardId, userId, PlayerStatus.LEFT);
     }
 
     @Override
-    public void createBoardUser(Long boardId, Long userId)
+    @Transactional
+    public void updateBoardUser(BoardUserHistory boardUserHistory)
     {
-        createBoardUser(get(boardId), userService.get(userId));
-    }
+        Board board = get(boardUserHistory.getBoardId());
 
-    @Override
-    public void removeBoardUser(Long boardId, Long userId)
-    {
-        BoardUser boardUser = boardUserService.loadByUserId(boardId, userId);
-        boardUser.setLeaveDate(DateUtils.nowAsUnixTime());
-        boardUserService.save(boardUser);
+        Integer userCount = boardUserHistoryService.getWaitingUserCount(boardUserHistory.getBoardId());
+        if (PlayerStatus.LEFT.equals(boardUserHistory.getStatus()))
+        {
+            boardUserHistory = boardUserHistoryService.loadByUserId(boardUserHistory.getBoardId(), boardUserHistory.getUserId());
+            boardUserHistoryService.remove(boardUserHistory.getId());
+            userCount = userCount - 1;
+        }
+
+        if (board.getUserCount().equals(userCount))
+        {
+            gameService.start(board);
+        }
+        else
+        {
+            contentService.updatePlayers(boardUserHistory.getBoardId(), board.getOrderNo(), false);
+        }
     }
 
     @Override
     public List<Board> getActiveBoards()
     {
-        return baseDao.getAllByStatus(EnumSet.of(BoardStatus.WAITING_USERS_TO_JOIN, BoardStatus.STARTED));
+        return baseDao.getAllByStatus(EnumSet.of(BoardStatus.WAITING_PLAYERS, BoardStatus.STARTED));
     }
 
     @Override
     public List<Board> getActiveBoardsByUser(Long userId)
     {
-        return baseDao.getUserBoardsByStatus(userId, EnumSet.of(BoardStatus.WAITING_USERS_TO_JOIN, BoardStatus.STARTED));
+        return baseDao.getUserBoardsByStatus(userId, EnumSet.of(BoardStatus.WAITING_PLAYERS, BoardStatus.STARTED));
     }
 
     @Override
@@ -170,10 +188,18 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         return true;
     }
 
-    private void createBoardUser(Board board, User user)
+    // ------------------------------------------------ private methods ------------------------------------------------
+
+    private void createBoardUserHistory(Long boardId, Long userId, PlayerStatus status)
     {
-        BoardUser boardUser = new BoardUser(board, user);
-        boardUser.setJoinDate(DateUtils.nowAsUnixTime());
-        boardUserService.save(boardUser);
+        BoardUserHistory boardUserHistory = new BoardUserHistory();
+        boardUserHistory.setBoardId(boardId);
+        boardUserHistory.setUserId(userId);
+        boardUserHistory.setStatus(status);
+        redisRepository.updateBoardUserHistory(boardUserHistory);
+        if (PlayerStatus.JOINED.equals(status))
+        {
+            boardUserHistoryService.save(boardUserHistory);
+        }
     }
 }

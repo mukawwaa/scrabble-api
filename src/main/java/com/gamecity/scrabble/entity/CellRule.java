@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQuery;
@@ -52,7 +53,7 @@ public class CellRule extends AbstractEntity implements Serializable
     @Column(name = "starting_cell", nullable = false, columnDefinition = "tinyint default 0")
     private boolean startingCell;
 
-    @JoinColumn(name = "rule_id", referencedColumnName = "id")
+    @JoinColumn(name = "rule_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_CELL_RULE"))
     @ManyToOne(targetEntity = Rule.class)
     private Rule rule;
 

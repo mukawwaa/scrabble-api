@@ -3,11 +3,12 @@
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>${logging.path}/scrabble-api.log</file>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{dd/MM/yy HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <logger name="mylogger" level="INFO" />
+    <logger name="org.hibernate.tool.schema.internal" level="DEBUG" />
+    <logger name="org.hibernate.SQL" level="DEBUG" />
 
     <root level="INFO">
         <appender-ref ref="FILE" />

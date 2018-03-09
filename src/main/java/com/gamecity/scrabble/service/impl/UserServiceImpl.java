@@ -41,7 +41,7 @@ public class UserServiceImpl extends AbstractServiceImpl<User, UserDao> implemen
     }
 
     @Override
-    public User checkValidUser(Long id)
+    public User validateUser(Long id)
     {
         User user = get(id);
         if (user == null || !user.isEnabled() || !user.isAccountNonExpired() || !user.isAccountNonLocked() || !user.isCredentialsNonExpired())

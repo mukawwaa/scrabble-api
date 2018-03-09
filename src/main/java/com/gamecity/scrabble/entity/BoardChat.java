@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
@@ -22,11 +23,11 @@ public class BoardChat extends AbstractEntity implements Serializable
 {
     private static final long serialVersionUID = -6046345121561887057L;
 
-    @JoinColumn(name = "board_id", referencedColumnName = "id")
+    @JoinColumn(name = "board_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_CHAT_BOARD"))
     @ManyToOne(targetEntity = Board.class)
     private Board board;
 
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_CHAT_USER"))
     @ManyToOne(targetEntity = User.class)
     private User user;
 

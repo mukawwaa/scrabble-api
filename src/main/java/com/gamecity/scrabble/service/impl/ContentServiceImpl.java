@@ -3,7 +3,6 @@ package com.gamecity.scrabble.service.impl;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -19,6 +18,7 @@ import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardUser;
+import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.entity.CellRule;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.TileRule;
@@ -30,9 +30,11 @@ import com.gamecity.scrabble.model.Player;
 import com.gamecity.scrabble.model.Rack;
 import com.gamecity.scrabble.model.RackTile;
 import com.gamecity.scrabble.service.BoardService;
+import com.gamecity.scrabble.service.BoardUserHistoryService;
 import com.gamecity.scrabble.service.BoardUserService;
 import com.gamecity.scrabble.service.ContentService;
 import com.gamecity.scrabble.service.RuleService;
+import com.gamecity.scrabble.service.UserService;
 
 @Service(value = "contentService")
 public class ContentServiceImpl implements ContentService
@@ -47,7 +49,13 @@ public class ContentServiceImpl implements ContentService
     private BoardUserService boardUserService;
 
     @Autowired
+    private BoardUserHistoryService boardUserHistoryService;
+
+    @Autowired
     private ContentService contentService;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private RedisRepository redisRepository;
@@ -105,7 +113,7 @@ public class ContentServiceImpl implements ContentService
     }
 
     @Override
-    public void updatePlayers(Long boardId, Integer orderNo)
+    public void updatePlayers(Long boardId, Integer orderNo, boolean started)
     {
         Board board = boardService.get(boardId);
         BoardPlayer player = new BoardPlayer();
@@ -114,7 +122,7 @@ public class ContentServiceImpl implements ContentService
         player.setCurrentUserId(board.getCurrentUser().getId());
         player.setCurrentUsername(board.getCurrentUser().getName());
 
-        List<Player> activePlayers = getActivePlayers(board);
+        List<Player> activePlayers = getActivePlayers(board, started);
         player.setPlayers(activePlayers);
         redisRepository.sendBoardPlayers(player);
     }
@@ -232,10 +240,39 @@ public class ContentServiceImpl implements ContentService
         return Arrays.asList(cells);
     }
 
-    private List<Player> getActivePlayers(Board board)
+    private List<Player> getActivePlayers(Board board, boolean started)
     {
-        List<BoardUser> activeUsers = boardUserService.loadAllActiveUsers(board.getId());
-        Function<BoardUser, Player> mapper = boardUser -> new Player(boardUser);
-        return activeUsers.stream().map(mapper).collect(Collectors.toList());
+        if (started)
+        {
+            List<BoardUserHistory> activeUsers = boardUserHistoryService.loadAllWaitingUsers(board.getId());
+            return activeUsers.stream().map(boardUserHistory -> createWaitingPlayer(boardUserHistory, board)).collect(Collectors.toList());
+        }
+        else
+        {
+            List<BoardUser> activeUsers = boardUserService.loadAllActiveUsers(board.getId());
+            return activeUsers.stream().map(boardUserHistory -> createActivePlayer(boardUserHistory, board)).collect(Collectors.toList());
+        }
+    }
+
+    private Player createWaitingPlayer(BoardUserHistory boardUserHistory, Board board)
+    {
+        Player player = new Player();
+        player.setBoardId(boardUserHistory.getBoardId());
+        player.setUserId(boardUserHistory.getUserId());
+        player.setUsername(userService.get(boardUserHistory.getUserId()).getName());
+        player.setScore(0);
+        player.setOwnTurn(false);
+        return player;
+    }
+
+    private Player createActivePlayer(BoardUser boardUser, Board board)
+    {
+        Player player = new Player();
+        player.setBoardId(boardUser.getBoardId());
+        player.setUserId(boardUser.getUserId());
+        player.setUsername(userService.get(boardUser.getUserId()).getName());
+        player.setScore(boardUser.getScore());
+        player.setOwnTurn(boardUser.getUserId().equals(board.getCurrentUser().getId()));
+        return player;
     }
 }

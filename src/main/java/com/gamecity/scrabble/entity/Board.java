@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
@@ -24,11 +25,11 @@ public class Board extends AbstractEntity implements Serializable
 {
     private static final long serialVersionUID = 7586449964647443785L;
 
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
+    @JoinColumn(name = "owner_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_BOARD_OWNER"))
     @ManyToOne(targetEntity = User.class)
     private User owner;
 
-    @JoinColumn(name = "rule_id", referencedColumnName = "id")
+    @JoinColumn(name = "rule_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_BOARD_RULE"))
     @ManyToOne(targetEntity = Rule.class)
     private Rule rule;
 
@@ -44,7 +45,7 @@ public class Board extends AbstractEntity implements Serializable
     @Column(name = "status", nullable = false)
     private BoardStatus status;
 
-    @JoinColumn(name = "current_user_id", referencedColumnName = "id")
+    @JoinColumn(name = "current_user_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_BOARD_CURRENT_USER"))
     @ManyToOne(targetEntity = User.class)
     private User currentUser;
 
@@ -56,23 +57,6 @@ public class Board extends AbstractEntity implements Serializable
 
     @Column(name = "end_date")
     private Long endDate;
-
-    public Board()
-    {
-        // base constructor
-    }
-
-    public Board(User owner, Rule rule, String name, Integer userCount, Integer duration)
-    {
-        this.owner = owner;
-        this.rule = rule;
-        this.name = name;
-        this.userCount = userCount;
-        this.duration = duration;
-        this.status = BoardStatus.WAITING_USERS_TO_JOIN;
-        this.currentUser = owner;
-        this.orderNo = 0;
-    }
 
     public User getOwner()
     {

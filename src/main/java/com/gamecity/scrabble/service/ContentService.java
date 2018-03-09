@@ -18,7 +18,7 @@ public interface ContentService
 
     BoardPlayer getPlayers(Long boardId, Integer orderNo);
 
-    void updatePlayers(Long boardId, Integer orderNo);
+    void updatePlayers(Long boardId, Integer orderNo, boolean started);
 
     BoardContent getContent(Long boardId, Integer orderNo);
 

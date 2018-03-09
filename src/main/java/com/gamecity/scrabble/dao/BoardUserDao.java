@@ -10,7 +10,5 @@ public interface BoardUserDao extends BaseDao<BoardUser>
 
     BoardUser getNextUser(Long boardId, Integer orderNo);
 
-    Integer getBoardUserCount(Long boardId);
-
     List<BoardUser> loadAllActiveUsers(Long boardId);
 }

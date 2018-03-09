@@ -10,5 +10,5 @@ public interface UserService extends BaseService<User>
 
     List<String> findRolesByUsername(String username);
 
-    User checkValidUser(Long id);
+    User validateUser(Long id);
 }

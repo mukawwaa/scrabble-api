@@ -28,13 +28,15 @@ public interface Constants
         String BOARD_CELL = "BOARD_CELL";
         String BOARD_TILE = "BOARD_TILE";
         String RACK = "RACK";
+        String BOARD_USER_COUNT = "BOARD_USER_COUNT";
+        String TEST = "TEST";
     }
 
     interface RedisListener
     {
         String BOARD_CHAT = "BOARD_CHAT";
         String BOARD_CONTENT = "BOARD_CONTENT";
-        String BOARD_USER = "BOARD_USER";
+        String BOARD_USER_HISTORY = "BOARD_USER_HISTORY";
         String BOARD_PLAYERS = "BOARD_PLAYERS";
 
         interface Method
@@ -46,6 +48,7 @@ public interface Constants
     interface BoardSettings
     {
         Integer FIRST_ROUND = 1;
+        Integer DEFAULT_ORDER = 0;
     }
 
     interface DatabaseSettings

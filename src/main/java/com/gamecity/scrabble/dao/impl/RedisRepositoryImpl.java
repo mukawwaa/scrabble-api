@@ -11,10 +11,10 @@ import org.springframework.stereotype.Repository;
 import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.BoardChat;
+import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.model.BoardContent;
 import com.gamecity.scrabble.model.BoardPlayer;
 import com.gamecity.scrabble.model.ChatMessage;
-import com.gamecity.scrabble.model.Player;
 
 @Repository(value = "redisRepository")
 public class RedisRepositoryImpl implements RedisRepository
@@ -31,10 +31,10 @@ public class RedisRepositoryImpl implements RedisRepository
     }
 
     @Override
-    public void updatePlayer(Player player)
+    public void updateBoardUserHistory(BoardUserHistory history)
     {
-        redisTemplate.boundListOps(Constants.RedisListener.BOARD_USER + ":" + player.getBoardId()).rightPush(player);
-        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_USER, player);
+        redisTemplate.boundListOps(Constants.RedisListener.BOARD_USER_HISTORY + ":" + history.getBoardId()).rightPush(history);
+        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_USER_HISTORY, history);
     }
 
     @Override

@@ -7,19 +7,20 @@ import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.UniqueConstraint;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity(name = "User")
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = { @UniqueConstraint(name = "UK_USER_NAME", columnNames = "username"), @UniqueConstraint(name = "UK_USER_EMAIL", columnNames = "email") })
 @NamedQuery(name = "findByUsername", query = "Select u from User u where u.username = :username")
 public class User extends AbstractEntity implements UserDetails
 {
     private static final long serialVersionUID = 7582993979095846948L;
 
-    @Column(name = "username", unique = true, nullable = false)
+    @Column(name = "username", nullable = false)
     private String username;
 
     @Column(name = "name", nullable = false)
@@ -28,7 +29,7 @@ public class User extends AbstractEntity implements UserDetails
     @Column(name = "surname", nullable = false)
     private String surname;
 
-    @Column(name = "email", unique = true, nullable = false)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "password", nullable = false)

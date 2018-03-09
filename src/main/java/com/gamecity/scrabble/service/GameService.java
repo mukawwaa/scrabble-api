@@ -8,4 +8,12 @@ public interface GameService
     void start(Board board);
 
     void play(Rack rack);
+
+    void validateRack(Rack rack);
+
+    void validateCurrentPlayer(Board board, Rack rack);
+
+    void calculateScore(Board board, Rack rack, Long playTime);
+
+    void assignNextUser(Board board);
 }

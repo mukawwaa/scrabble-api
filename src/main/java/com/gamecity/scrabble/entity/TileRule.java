@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQuery;
@@ -31,7 +32,7 @@ public class TileRule extends AbstractEntity implements Serializable
     @Column(name = "vowel", nullable = false, columnDefinition = "tinyint default 0")
     private boolean vovel;
 
-    @JoinColumn(name = "rule_id", referencedColumnName = "id")
+    @JoinColumn(name = "rule_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_TILE_RULE"))
     @ManyToOne(targetEntity = Rule.class)
     private Rule rule;
 

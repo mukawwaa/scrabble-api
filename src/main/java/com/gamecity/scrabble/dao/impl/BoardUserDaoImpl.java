@@ -14,7 +14,7 @@ public class BoardUserDaoImpl extends AbstractDaoImpl<BoardUser> implements Boar
     @Override
     public BoardUser loadByUserId(Long boardId, Long userId)
     {
-        return findByNamedQuery("loadByUserId", Arrays.asList("boardId", "userId"), boardId, userId);
+        return findByNamedQuery("loadUserByUserId", Arrays.asList("boardId", "userId"), boardId, userId);
     }
 
     @Override
@@ -24,14 +24,8 @@ public class BoardUserDaoImpl extends AbstractDaoImpl<BoardUser> implements Boar
     }
 
     @Override
-    public Integer getBoardUserCount(Long boardId)
-    {
-        return findGenericTypeByNamedQuery("getBoardUserCount", Arrays.asList("boardId"), boardId);
-    }
-
-    @Override
     public List<BoardUser> loadAllActiveUsers(Long boardId)
     {
-        return listByNamedQuery("loadUsersByBoardId", Arrays.asList("boardId"), boardId);
+        return listByNamedQuery("loadActiveUsersByBoardId", Arrays.asList("boardId"), boardId);
     }
 }

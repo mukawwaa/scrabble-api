@@ -2,6 +2,7 @@ package com.gamecity.scrabble.entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
@@ -13,11 +14,11 @@ import org.apache.commons.lang.builder.ToStringStyle;
 @Table(name = "word_logs")
 public class WordLog extends AbstractEntity
 {
-    @JoinColumn(name = "board_id", referencedColumnName = "id")
+    @JoinColumn(name = "board_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_WORD_LOG_BOARD"))
     @ManyToOne(targetEntity = Board.class)
     private Board board;
 
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "FK_WORD_LOG_USER"))
     @ManyToOne(targetEntity = User.class)
     private User user;
 
@@ -32,21 +33,6 @@ public class WordLog extends AbstractEntity
 
     @Column(name = "duration", nullable = false)
     private Integer duration;
-
-    public WordLog()
-    {
-        // base constructor
-    }
-
-    public WordLog(Board board, User user, Integer orderNo, String word, Integer score, Integer duration)
-    {
-        this.board = board;
-        this.user = user;
-        this.orderNo = orderNo;
-        this.word = word;
-        this.score = score;
-        this.duration = duration;
-    }
 
     public Board getBoard()
     {

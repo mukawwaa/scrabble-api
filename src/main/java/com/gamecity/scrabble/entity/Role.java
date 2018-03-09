@@ -4,16 +4,17 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 @Entity(name = "Role")
-@Table(name = "roles")
+@Table(name = "roles", uniqueConstraints = { @UniqueConstraint(name = "UK_ROLE_NAME", columnNames = "rolename") })
 @NamedQuery(name = "findByRoleName", query = "Select r from Role r where r.rolename = :rolename")
 public class Role extends AbstractEntity
 {
-    @Column(name = "rolename", nullable = false, unique = true)
+    @Column(name = "rolename", nullable = false)
     private String rolename;
 
     @Column(name = "enabled", nullable = false, columnDefinition = "tinyint default 1")

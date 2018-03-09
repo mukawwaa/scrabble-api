@@ -1,6 +1,7 @@
 package com.gamecity.scrabble.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -8,57 +9,49 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardStatus;
-import com.gamecity.scrabble.entity.Rule;
-import com.gamecity.scrabble.entity.User;
-import com.gamecity.scrabble.model.BoardParams;
 import com.gamecity.scrabble.service.BoardService;
 import com.gamecity.scrabble.service.exception.GameError;
 import com.gamecity.scrabble.service.exception.GameException;
 
-public class BoardTest extends AbstractServiceTest
+public class BoardTest extends AbstractGameTest
 {
-    private User creator;
-    private User player;
-    private Rule rule;
-
     @Autowired
     private BoardService boardService;
 
     @Before
-    public void init()
+    public void before()
     {
-        creator = getCreator();
-        rule = getDefaultRule();
-        player = getPlayer();
+        super.setUp();
     }
 
     @Test
     public void testCreateNewBoard()
     {
-        Board board = createBoard(2);
+        createBoard(creator, 2);
         assertNotNull(board.getId());
+        assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
 
     @Test
     public void testJoinBoard()
     {
-        Board board = createBoard(3);
-        assertNotNull(board.getId());
+        createBoard(creator, 3);
         boardService.join(board.getId(), player.getId());
+        sleep(2);
+        board = boardService.get(board.getId());
+        assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
 
     @Test
     public void testJoinBoardWithAlreadyJoinedUserError()
     {
-        Board board = createBoard(3);
-        assertNotNull(board.getId());
+        createBoard(creator, 3);
         boardService.join(board.getId(), player.getId());
         try
         {
             boardService.join(board.getId(), player.getId());
-            assertEquals(true, false);
+            assertFalse(true);
         }
         catch (GameException e)
         {
@@ -69,21 +62,23 @@ public class BoardTest extends AbstractServiceTest
     @Test
     public void testLeaveBoard()
     {
-        Board board = createBoard(3);
-        assertNotNull(board.getId());
+        createBoard(creator, 3);
         boardService.join(board.getId(), player.getId());
+        sleep(2);
         boardService.leave(board.getId(), player.getId());
+        sleep(2);
+        board = boardService.get(board.getId());
+        assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
 
     @Test
     public void testLeaveBoardWithNotJoinedUserError()
     {
-        Board board = createBoard(3);
-        assertNotNull(board.getId());
+        createBoard(creator, 3);
         try
         {
             boardService.leave(board.getId(), player.getId());
-            assertEquals(true, false);
+            assertFalse(true);
         }
         catch (GameException e)
         {
@@ -92,23 +87,44 @@ public class BoardTest extends AbstractServiceTest
     }
 
     @Test
-    public void testBoardStarted()
+    public void testBoardUserCountIncrease()
     {
-        Board board = createBoard(2);
-        assertNotNull(board.getId());
+        createBoard(creator, 4);
         boardService.join(board.getId(), player.getId());
+        sleep(2);
+        assertEquals((Integer) 2, boardUserHistoryService.getWaitingUserCount(board.getId()));
+        boardService.join(board.getId(), admin.getId());
+        sleep(2);
+        assertEquals((Integer) 3, boardUserHistoryService.getWaitingUserCount(board.getId()));
         board = boardService.get(board.getId());
-        assertTrue(BoardStatus.STARTED.equals(board.getStatus()));
+        assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
 
-    private Board createBoard(Integer userCount)
+    @Test
+    public void testBoardUserCountDecrease()
     {
-        BoardParams params = new BoardParams();
-        params.setDuration(1);
-        params.setName("Test Masası");
-        params.setRuleId(rule.getId());
-        params.setUserCount(userCount);
-        params.setUserId(creator.getId());
-        return boardService.create(params);
+        createBoard(creator, 4);
+        boardService.join(board.getId(), player.getId());
+        boardService.join(board.getId(), admin.getId());
+        sleep(2);
+        assertEquals((Integer) 3, boardUserHistoryService.getWaitingUserCount(board.getId()));
+        boardService.leave(board.getId(), player.getId());
+        sleep(2);
+        assertEquals((Integer) 2, boardUserHistoryService.getWaitingUserCount(board.getId()));
+        boardService.leave(board.getId(), admin.getId());
+        sleep(2);
+        assertEquals((Integer) 1, boardUserHistoryService.getWaitingUserCount(board.getId()));
+        board = boardService.get(board.getId());
+        assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
+    }
+
+    @Test
+    public void testBoardStarted()
+    {
+        createBoard(creator, 2);
+        boardService.join(board.getId(), player.getId());
+        sleep(2);
+        board = boardService.get(board.getId());
+        assertTrue(BoardStatus.STARTED.equals(board.getStatus()));
     }
 }

@@ -22,17 +22,9 @@ public class RackTile implements Serializable
 
     public RackTile(Integer tileNumber, String letter, Integer score)
     {
-        this(tileNumber, letter, score, null, null, false);
-    }
-
-    public RackTile(Integer tileNumber, String letter, Integer score, Integer rowNumber, Integer columnNumber, boolean used)
-    {
         this.tileNumber = tileNumber;
         this.letter = letter;
         this.score = score;
-        this.rowNumber = rowNumber;
-        this.columnNumber = columnNumber;
-        this.used = used;
     }
 
     public Integer getTileNumber()

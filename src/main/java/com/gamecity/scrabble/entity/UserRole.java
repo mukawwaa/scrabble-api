@@ -10,7 +10,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 @Entity(name = "UserRole")
-@Table(name = "user_roles", uniqueConstraints = { @UniqueConstraint(columnNames = { "username", "rolename", "enabled" }) })
+@Table(name = "user_roles", uniqueConstraints = { @UniqueConstraint(name = "UK_USER_ROLE", columnNames = { "username", "rolename", "enabled" }) })
 @NamedQuery(name = "findRolesByUsername", query = "Select rolename from UserRole where username = :username")
 public class UserRole extends AbstractEntity
 {

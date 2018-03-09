@@ -2,9 +2,7 @@ package com.gamecity.scrabble.test;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-
-import org.junit.Before;
+import org.apache.commons.lang.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.gamecity.scrabble.entity.Board;
@@ -15,6 +13,7 @@ import com.gamecity.scrabble.model.BoardParams;
 import com.gamecity.scrabble.model.Rack;
 import com.gamecity.scrabble.model.RackTile;
 import com.gamecity.scrabble.service.BoardService;
+import com.gamecity.scrabble.service.BoardUserHistoryService;
 import com.gamecity.scrabble.service.BoardUserService;
 import com.gamecity.scrabble.service.ContentService;
 import com.gamecity.scrabble.service.GameService;
@@ -24,7 +23,9 @@ public abstract class AbstractGameTest extends AbstractServiceTest
     protected Board board;
     protected User creator;
     protected User player;
+    protected User admin;
     protected Rule rule;
+    protected Rack rack;
 
     @Autowired
     protected BoardService boardService;
@@ -33,74 +34,84 @@ public abstract class AbstractGameTest extends AbstractServiceTest
     protected BoardUserService boardUserService;
 
     @Autowired
+    protected BoardUserHistoryService boardUserHistoryService;
+
+    @Autowired
     protected ContentService contentService;
 
     @Autowired
     protected GameService gameService;
 
-    @Before
-    public void init()
+    public void setUp()
     {
         creator = getCreator();
-        rule = getDefaultRule();
         player = getPlayer();
-        createBoardAndStartGame();
+        admin = getAdmin();
+        rule = getDefaultRule();
     }
 
-    private void createBoardAndStartGame()
+    protected void createBoardAndStartGame(User user)
     {
-        board = createBoard(2);
+        createBoard(user, 2);
         boardService.join(board.getId(), player.getId());
+        sleep(2);
         board = boardService.get(board.getId());
         assertTrue(BoardStatus.STARTED.equals(board.getStatus()));
     }
 
     protected void playAMove()
     {
-        Rack rack = createCorrectRack(board.getId(), creator.getId());
+        createCorrectRack(board.getId(), creator.getId());
         gameService.play(rack);
     }
 
-    protected Board createBoard(Integer userCount)
+    protected void createBoard(User user, Integer userCount)
     {
         BoardParams params = new BoardParams();
         params.setDuration(1);
-        params.setName("Test Masası");
+        params.setName(RandomStringUtils.randomAlphabetic(10));
         params.setRuleId(rule.getId());
         params.setUserCount(userCount);
-        params.setUserId(creator.getId());
-        return boardService.create(params);
+        params.setUserId(user.getId());
+        board = boardService.create(params);
     }
 
-    protected Rack createCorrectRack(Long boardId, Long userId)
+    protected void createCorrectRack(Long boardId, Long userId)
     {
-        Rack correctRack = new Rack();
-        correctRack.setBoardId(boardId);
-        correctRack.setUserId(userId);
-        correctRack.setTiles(new ArrayList<RackTile>());
-//        correctRack.getTiles().add(new RackTile(1, "S", 1, 1, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(2, "I", 1, 2, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(3, "Ğ", 1, 3, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(4, "Ü", 2, 1, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(5, "T", 3, 1, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(6, "C"));
-//        correctRack.getTiles().add(new RackTile(7, "D"));
-        return correctRack;
+        rack = contentService.getRack(board.getId(), userId);
+        int columnNumber = 5;
+        for (RackTile rackTile : rack.getTiles())
+        {
+            rackTile.setColumnNumber(columnNumber);
+            rackTile.setRowNumber(8);
+            rackTile.setUsed(true);
+            columnNumber = columnNumber + 1;
+        }
     }
 
-    protected Rack createWrongRack(Long boardId, Long userId)
+    protected void createWrongRack(Long boardId, Long userId)
     {
-        Rack correctRack = new Rack();
-        correctRack.setBoardId(boardId);
-        correctRack.setUserId(userId);
-        correctRack.setTiles(new ArrayList<RackTile>());
-//        correctRack.getTiles().add(new RackTile(1, "G"));
-//        correctRack.getTiles().add(new RackTile(2, "A", 1, 4, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(3, "S"));
-//        correctRack.getTiles().add(new RackTile(4, "N", 1, 5, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(5, "U", 1, 1, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(6, "R", 1, 2, Boolean.TRUE));
-//        correctRack.getTiles().add(new RackTile(7, "Ç", 1, 3, Boolean.TRUE));
-        return correctRack;
+        rack = contentService.getRack(board.getId(), userId);
+        int columnNumber = 4;
+        for (RackTile rackTile : rack.getTiles())
+        {
+            if (columnNumber % 2 == 0)
+            {
+                rackTile.setColumnNumber(columnNumber);
+                rackTile.setRowNumber(8);
+                rackTile.setUsed(true);
+            }
+            columnNumber = columnNumber + 1;
+        }
+    }
+
+    protected void fillRack(Long userId)
+    {
+        rack = contentService.getRack(board.getId(), userId);
+    }
+
+    protected void play()
+    {
+        gameService.play(rack);
     }
 }

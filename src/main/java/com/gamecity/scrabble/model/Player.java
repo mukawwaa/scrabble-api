@@ -5,10 +5,9 @@ import java.io.Serializable;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.gamecity.scrabble.entity.BoardUser;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Player implements Serializable
 {
     private static final long serialVersionUID = 4440513193729254918L;
@@ -18,20 +17,6 @@ public class Player implements Serializable
     private Integer score;
     private boolean enabled;
     private boolean ownTurn;
-
-    public Player()
-    {
-        super();
-    }
-
-    public Player(BoardUser boardUser)
-    {
-        this.boardId = boardUser.getBoard().getId();
-        this.userId = boardUser.getUser().getId();
-        this.username = boardUser.getUser().getUsername();
-        this.score = boardUser.getScore();
-        this.ownTurn = boardUser.getUser().getId().equals(boardUser.getBoard().getCurrentUser().getId());
-    }
 
     public Long getBoardId()
     {
