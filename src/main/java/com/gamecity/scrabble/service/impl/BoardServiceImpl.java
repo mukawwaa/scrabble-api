@@ -3,19 +3,21 @@ package com.gamecity.scrabble.service.impl;
 import java.util.EnumSet;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.BoardDao;
-import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardStatus;
 import com.gamecity.scrabble.entity.BoardUserHistory;
-import com.gamecity.scrabble.entity.PlayerStatus;
+import com.gamecity.scrabble.entity.PlayerAction;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.User;
+import com.gamecity.scrabble.entity.cassandra.BoardUserCounter;
 import com.gamecity.scrabble.model.BoardParams;
 import com.gamecity.scrabble.service.BoardService;
 import com.gamecity.scrabble.service.BoardUserHistoryService;
@@ -23,13 +25,15 @@ import com.gamecity.scrabble.service.ContentService;
 import com.gamecity.scrabble.service.GameService;
 import com.gamecity.scrabble.service.RuleService;
 import com.gamecity.scrabble.service.UserService;
-import com.gamecity.scrabble.service.exception.GameError;
-import com.gamecity.scrabble.service.exception.GameException;
+import com.gamecity.scrabble.service.exception.BoardException;
+import com.gamecity.scrabble.service.exception.error.BoardError;
 import com.gamecity.scrabble.util.ValidationUtils;
 
 @Service(value = "boardService")
 public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> implements BoardService
 {
+    private static Logger logger = LoggerFactory.getLogger(BoardServiceImpl.class);
+
     @Autowired
     private UserService userService;
 
@@ -43,9 +47,6 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     private GameService gameService;
 
     @Autowired
-    private RedisRepository redisRepository;
-
-    @Autowired
     private BoardUserHistoryService boardUserHistoryService;
 
     @Override
@@ -54,7 +55,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         Board board = get(id);
         if (board == null || BoardStatus.TERMINATED.equals(board.getStatus()) || BoardStatus.FINISHED.equals(board.getStatus()))
         {
-            throw new GameException(GameError.INVALID_BOARD_ID);
+            throw new BoardException(BoardError.INVALID_BOARD_ID);
         }
         return board;
     }
@@ -65,7 +66,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         Board board = checkBoardAvailable(id);
         if (!BoardStatus.STARTED.equals(board.getStatus()))
         {
-            throw new GameException(GameError.GAME_IS_NOT_STARTED);
+            throw new BoardException(BoardError.BOARD_IS_NOT_STARTED);
         }
         return board;
     }
@@ -88,7 +89,8 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         board.setUserCount(params.getUserCount());
         save(board);
 
-        createBoardUserHistory(board.getId(), user.getId(), PlayerStatus.JOINED);
+        contentService.updateContent(board.getId(), board.getOrderNo());
+        createBoardUserHistory(board, user.getId(), PlayerAction.CREATE);
 
         return board;
     }
@@ -102,18 +104,18 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         userService.validateUser(userId);
         Board board = checkBoardAvailable(boardId);
 
-        BoardUserHistory boardUserHistory = boardUserHistoryService.loadByUserId(boardId, userId);
-        if (boardUserHistory != null && PlayerStatus.JOINED.equals(boardUserHistory.getStatus()))
+        BoardUserHistory boardUserHistory = boardUserHistoryService.loadLastActionByUserId(boardId, userId);
+        if (boardUserHistory != null && PlayerAction.JOIN.equals(boardUserHistory.getAction()))
         {
-            throw new GameException(GameError.ALREADY_ON_BOARD, boardId);
+            throw new BoardException(BoardError.ALREADY_ON_BOARD, boardId);
         }
 
         if (BoardStatus.STARTED.equals(board.getStatus()))
         {
-            throw new GameException(GameError.GAME_IS_STARTED);
+            throw new BoardException(BoardError.BOARD_IS_STARTED);
         }
 
-        createBoardUserHistory(boardId, userId, PlayerStatus.JOINED);
+        createBoardUserHistory(board, userId, PlayerAction.JOIN);
     }
 
     @Override
@@ -125,47 +127,23 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         userService.validateUser(userId);
         Board board = checkBoardAvailable(boardId);
 
-        BoardUserHistory boardUserHistory = boardUserHistoryService.loadByUserId(boardId, userId);
-        if (boardUserHistory == null || PlayerStatus.LEFT.equals(boardUserHistory.getStatus()))
+        BoardUserHistory boardUserHistory = boardUserHistoryService.loadLastActionByUserId(boardId, userId);
+        if (boardUserHistory == null || PlayerAction.LEFT.equals(boardUserHistory.getAction()))
         {
-            throw new GameException(GameError.NOT_ON_BOARD);
+            throw new BoardException(BoardError.NOT_ON_BOARD);
         }
 
         if (BoardStatus.STARTED.equals(board.getStatus()))
         {
-            throw new GameException(GameError.GAME_IS_STARTED);
+            throw new BoardException(BoardError.BOARD_IS_STARTED);
         }
 
         if (board.getOwner().getId().equals(userId))
         {
-            throw new GameException(GameError.OWNER_CANNOT_LEAVE_BOARD);
+            throw new BoardException(BoardError.OWNER_CANNOT_LEAVE_BOARD);
         }
 
-        createBoardUserHistory(boardId, userId, PlayerStatus.LEFT);
-    }
-
-    @Override
-    @Transactional
-    public void updateBoardUser(BoardUserHistory boardUserHistory)
-    {
-        Board board = get(boardUserHistory.getBoardId());
-
-        Integer userCount = boardUserHistoryService.getWaitingUserCount(boardUserHistory.getBoardId());
-        if (PlayerStatus.LEFT.equals(boardUserHistory.getStatus()))
-        {
-            boardUserHistory = boardUserHistoryService.loadByUserId(boardUserHistory.getBoardId(), boardUserHistory.getUserId());
-            boardUserHistoryService.remove(boardUserHistory.getId());
-            userCount = userCount - 1;
-        }
-
-        if (board.getUserCount().equals(userCount))
-        {
-            gameService.start(board);
-        }
-        else
-        {
-            contentService.updatePlayers(boardUserHistory.getBoardId(), board.getOrderNo(), false);
-        }
+        createBoardUserHistory(board, userId, PlayerAction.LEFT);
     }
 
     @Override
@@ -190,16 +168,33 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
 
     // ------------------------------------------------ private methods ------------------------------------------------
 
-    private void createBoardUserHistory(Long boardId, Long userId, PlayerStatus status)
+    private void createBoardUserHistory(Board board, Long userId, PlayerAction action)
     {
         BoardUserHistory boardUserHistory = new BoardUserHistory();
-        boardUserHistory.setBoardId(boardId);
+        boardUserHistory.setBoardId(board.getId());
         boardUserHistory.setUserId(userId);
-        boardUserHistory.setStatus(status);
-        redisRepository.updateBoardUserHistory(boardUserHistory);
-        if (PlayerStatus.JOINED.equals(status))
+        boardUserHistory.setAction(action);
+        boardUserHistoryService.save(boardUserHistory);
+
+        validateGameStatus(board, boardUserHistory);
+    }
+
+    private void validateGameStatus(Board board, BoardUserHistory boardUserHistory)
+    {
+        BoardUserCounter counter = boardUserHistoryService.calculatePlayerCount(board.getId(), boardUserHistory.getAction());
+
+        if (board.getUserCount().equals(counter.getPlayerCount().intValue()))
         {
-            boardUserHistoryService.save(boardUserHistory);
+            gameService.start(board);
+        }
+        else if (board.getUserCount() > counter.getPlayerCount().intValue())
+        {
+            contentService.updateWaitingPlayers(board.getId(), counter.getActionCount().intValue(), boardUserHistory);
+        }
+        else
+        {
+            logger.warn("User {} exceeded the limit {} of board {}.", boardUserHistory.getUserId(), board.getUserCount(), board.getId());
+            throw new BoardException(BoardError.BOARD_IS_STARTED);
         }
     }
 }

@@ -16,6 +16,11 @@ public class BoardCell implements Serializable
     private Integer score;
     private boolean used;
 
+    public BoardCell()
+    {
+        super();
+    }
+
     public BoardCell(Long boardId, CellRule rule)
     {
         this.boardId = boardId;

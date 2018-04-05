@@ -3,12 +3,18 @@ package com.gamecity.scrabble.service;
 import java.util.List;
 
 import com.gamecity.scrabble.entity.BoardUserHistory;
+import com.gamecity.scrabble.entity.PlayerAction;
+import com.gamecity.scrabble.entity.cassandra.BoardUserCounter;
 
 public interface BoardUserHistoryService extends BaseService<BoardUserHistory>
 {
-    BoardUserHistory loadByUserId(Long boardId, Long userId);
+    BoardUserHistory loadLastActionByUserId(Long boardId, Long userId);
 
-    List<BoardUserHistory> loadAllWaitingUsers(Long boardId);
+    BoardUserCounter calculatePlayerCount(Long boardId, PlayerAction action);
 
     Integer getWaitingUserCount(Long boardId);
+
+    BoardUserCounter getBoardUserCounter(Long boardId);
+
+    List<BoardUserHistory> loadAllWaitingUsers(Long boardId);
 }

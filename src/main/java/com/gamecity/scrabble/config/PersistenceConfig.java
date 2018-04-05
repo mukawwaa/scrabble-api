@@ -1,5 +1,6 @@
 package com.gamecity.scrabble.config;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 import javax.persistence.EntityManagerFactory;
@@ -8,6 +9,7 @@ import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.instrument.classloading.InstrumentationLoadTimeWeaver;
@@ -27,6 +29,8 @@ import com.gamecity.scrabble.Constants;
 
 @Configuration
 @EnableTransactionManagement
+@PropertySource("classpath:database.properties")
+@PropertySource("classpath:hibernate.properties")
 public class PersistenceConfig
 {
     @Autowired
@@ -94,7 +98,7 @@ public class PersistenceConfig
         DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
         dataSourceInitializer.setDataSource(dataSource);
         dataSourceInitializer.setDatabasePopulator(databasePopulator());
-        dataSourceInitializer.setEnabled(Constants.DatabaseSettings.CREATE_DROP.equals(env.getProperty("hibernate.hbm2ddl.auto")));
+        dataSourceInitializer.setEnabled(Arrays.asList(Constants.DatabaseSettings.CREATE_DROP, Constants.DatabaseSettings.CREATE_DROP).contains(env.getProperty("hibernate.hbm2ddl.auto")));
         return dataSourceInitializer;
     }
 

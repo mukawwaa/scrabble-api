@@ -29,7 +29,7 @@ public class ChatResource extends BaseResource<BoardChat, BoardChatService>
     @GET
     @Path("/messages/{orderNo}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getContent(@PathParam("boardId") Long boardId, @PathParam("orderNo") Integer orderNo)
+    public Response getMessages(@PathParam("boardId") Long boardId, @PathParam("orderNo") Integer orderNo)
     {
         return build(baseService.getMessages(boardId, orderNo));
     }

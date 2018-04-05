@@ -36,13 +36,7 @@ public interface Constants
     {
         String BOARD_CHAT = "BOARD_CHAT";
         String BOARD_CONTENT = "BOARD_CONTENT";
-        String BOARD_USER_HISTORY = "BOARD_USER_HISTORY";
         String BOARD_PLAYERS = "BOARD_PLAYERS";
-
-        interface Method
-        {
-            String RECEIVE_USER_UPDATE = "receiveUserUpdate";
-        }
     }
 
     interface BoardSettings
@@ -55,10 +49,18 @@ public interface Constants
     {
 
         String CREATE_DROP = "create-drop";
+        String CREATE = "create";
     }
 
     interface KafkaTopic
     {
         String BOARD_ACTION = "BOARD_ACTION";
+    }
+
+    interface Role
+    {
+        String ROLE_USER = "ROLE_USER";
+        String ROLE_ADMIN = "ROLE_ADMIN";
+        String ROLE_SYSTEM = "ROLE_SYSTEM";
     }
 }

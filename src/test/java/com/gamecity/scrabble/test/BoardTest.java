@@ -9,26 +9,31 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardStatus;
-import com.gamecity.scrabble.service.BoardService;
-import com.gamecity.scrabble.service.exception.GameError;
-import com.gamecity.scrabble.service.exception.GameException;
+import com.gamecity.scrabble.entity.User;
+import com.gamecity.scrabble.service.BoardUserHistoryService;
+import com.gamecity.scrabble.service.exception.BoardException;
+import com.gamecity.scrabble.service.exception.error.BoardError;
 
-public class BoardTest extends AbstractGameTest
+public class BoardTest extends AbstractScrabbleTest
 {
+    private User creator;
+
     @Autowired
-    private BoardService boardService;
+    private BoardUserHistoryService boardUserHistoryService;
 
     @Before
     public void before()
     {
         super.setUp();
+        creator = createUser();
     }
 
     @Test
     public void testCreateNewBoard()
     {
-        createBoard(creator, 2);
+        Board board = createBoard(creator, 2);
         assertNotNull(board.getId());
         assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
@@ -36,9 +41,8 @@ public class BoardTest extends AbstractGameTest
     @Test
     public void testJoinBoard()
     {
-        createBoard(creator, 3);
-        boardService.join(board.getId(), player.getId());
-        sleep(2);
+        Board board = createBoard(creator, 3);
+        boardService.join(board.getId(), createUser().getId());
         board = boardService.get(board.getId());
         assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
@@ -46,27 +50,27 @@ public class BoardTest extends AbstractGameTest
     @Test
     public void testJoinBoardWithAlreadyJoinedUserError()
     {
-        createBoard(creator, 3);
-        boardService.join(board.getId(), player.getId());
+        Board board = createBoard(creator, 3);
+        User secondPlayer = createUser();
+        boardService.join(board.getId(), secondPlayer.getId());
         try
         {
-            boardService.join(board.getId(), player.getId());
+            boardService.join(board.getId(), secondPlayer.getId());
             assertFalse(true);
         }
-        catch (GameException e)
+        catch (BoardException e)
         {
-            assertEquals(e.getErrorCode(), GameError.ALREADY_ON_BOARD.getCode());
+            assertEquals(e.getErrorCode(), BoardError.ALREADY_ON_BOARD.getCode());
         }
     }
 
     @Test
     public void testLeaveBoard()
     {
-        createBoard(creator, 3);
-        boardService.join(board.getId(), player.getId());
-        sleep(2);
-        boardService.leave(board.getId(), player.getId());
-        sleep(2);
+        Board board = createBoard(creator, 3);
+        User secondPlayer = createUser();
+        boardService.join(board.getId(), secondPlayer.getId());
+        boardService.leave(board.getId(), secondPlayer.getId());
         board = boardService.get(board.getId());
         assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
     }
@@ -74,27 +78,25 @@ public class BoardTest extends AbstractGameTest
     @Test
     public void testLeaveBoardWithNotJoinedUserError()
     {
-        createBoard(creator, 3);
+        Board board = createBoard(creator, 3);
         try
         {
-            boardService.leave(board.getId(), player.getId());
+            boardService.leave(board.getId(), createUser().getId());
             assertFalse(true);
         }
-        catch (GameException e)
+        catch (BoardException e)
         {
-            assertEquals(e.getErrorCode(), GameError.NOT_ON_BOARD.getCode());
+            assertEquals(e.getErrorCode(), BoardError.NOT_ON_BOARD.getCode());
         }
     }
 
     @Test
     public void testBoardUserCountIncrease()
     {
-        createBoard(creator, 4);
-        boardService.join(board.getId(), player.getId());
-        sleep(2);
+        Board board = createBoard(creator, 4);
+        boardService.join(board.getId(), createUser().getId());
         assertEquals((Integer) 2, boardUserHistoryService.getWaitingUserCount(board.getId()));
-        boardService.join(board.getId(), admin.getId());
-        sleep(2);
+        boardService.join(board.getId(), createUser().getId());
         assertEquals((Integer) 3, boardUserHistoryService.getWaitingUserCount(board.getId()));
         board = boardService.get(board.getId());
         assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
@@ -103,16 +105,15 @@ public class BoardTest extends AbstractGameTest
     @Test
     public void testBoardUserCountDecrease()
     {
-        createBoard(creator, 4);
-        boardService.join(board.getId(), player.getId());
-        boardService.join(board.getId(), admin.getId());
-        sleep(2);
+        Board board = createBoard(creator, 4);
+        User secondPlayer = createUser();
+        boardService.join(board.getId(), secondPlayer.getId());
+        User thirdPlayer = createUser();
+        boardService.join(board.getId(), thirdPlayer.getId());
         assertEquals((Integer) 3, boardUserHistoryService.getWaitingUserCount(board.getId()));
-        boardService.leave(board.getId(), player.getId());
-        sleep(2);
+        boardService.leave(board.getId(), secondPlayer.getId());
         assertEquals((Integer) 2, boardUserHistoryService.getWaitingUserCount(board.getId()));
-        boardService.leave(board.getId(), admin.getId());
-        sleep(2);
+        boardService.leave(board.getId(), thirdPlayer.getId());
         assertEquals((Integer) 1, boardUserHistoryService.getWaitingUserCount(board.getId()));
         board = boardService.get(board.getId());
         assertEquals(BoardStatus.WAITING_PLAYERS, board.getStatus());
@@ -121,9 +122,8 @@ public class BoardTest extends AbstractGameTest
     @Test
     public void testBoardStarted()
     {
-        createBoard(creator, 2);
-        boardService.join(board.getId(), player.getId());
-        sleep(2);
+        Board board = createBoard(creator, 2);
+        boardService.join(board.getId(), createUser().getId());
         board = boardService.get(board.getId());
         assertTrue(BoardStatus.STARTED.equals(board.getStatus()));
     }

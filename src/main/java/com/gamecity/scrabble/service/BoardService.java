@@ -3,7 +3,6 @@ package com.gamecity.scrabble.service;
 import java.util.List;
 
 import com.gamecity.scrabble.entity.Board;
-import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.model.BoardParams;
 
 public interface BoardService extends BaseService<Board>
@@ -23,6 +22,4 @@ public interface BoardService extends BaseService<Board>
     List<Board> getActiveBoardsByUser(Long userId);
 
     Boolean stopExpired();
-
-    void updateBoardUser(BoardUserHistory boardUserHistory);
 }

@@ -1,10 +1,14 @@
 package com.gamecity.scrabble.entity;
 
+import java.util.Date;
+
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 @MappedSuperclass
 public abstract class AbstractEntity
@@ -14,11 +18,13 @@ public abstract class AbstractEntity
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "create_date", nullable = false, columnDefinition = "bigint default 0")
-    private Long createDate;
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "create_date", nullable = false, columnDefinition = "datetime default now()")
+    private Date createDate;
 
+    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "last_update_date")
-    private Long lastUpdateDate;
+    private Date lastUpdateDate;
 
     public Long getId()
     {
@@ -30,22 +36,22 @@ public abstract class AbstractEntity
         this.id = id;
     }
 
-    public Long getCreateDate()
+    public Date getCreateDate()
     {
         return createDate;
     }
 
-    public void setCreateDate(Long createDate)
+    public void setCreateDate(Date createDate)
     {
         this.createDate = createDate;
     }
 
-    public Long getLastUpdateDate()
+    public Date getLastUpdateDate()
     {
         return lastUpdateDate;
     }
 
-    public void setLastUpdateDate(Long lastUpdateDate)
+    public void setLastUpdateDate(Date lastUpdateDate)
     {
         this.lastUpdateDate = lastUpdateDate;
     }

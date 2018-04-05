@@ -12,20 +12,14 @@ import com.gamecity.scrabble.entity.BoardUserHistory;
 public class BoardUserHistoryDaoImpl extends AbstractDaoImpl<BoardUserHistory> implements BoardUserHistoryDao
 {
     @Override
-    public BoardUserHistory loadByUserId(Long boardId, Long userId)
+    public BoardUserHistory loadLastActionByUserId(Long boardId, Long userId)
     {
-        return findByNamedQuery("loadHistoryByUserId", Arrays.asList("boardId", "userId"), boardId, userId);
+        return findByNamedQuery("loadLastActionByUserId", Arrays.asList("boardId", "userId"), boardId, userId);
     }
 
     @Override
     public List<BoardUserHistory> loadAllWaitingUsers(Long boardId)
     {
         return listByNamedQuery("loadWaitingUsersByBoardId", Arrays.asList("boardId"), boardId);
-    }
-
-    @Override
-    public Integer getWaitingUserCount(Long boardId)
-    {
-        return ((Long) findGenericTypeByNamedQuery("getWaitingUserCount", Arrays.asList("boardId"), boardId)).intValue();
     }
 }

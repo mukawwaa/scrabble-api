@@ -17,7 +17,7 @@ public class RackTile implements Serializable
 
     public RackTile()
     {
-        // base constructor
+        super();
     }
 
     public RackTile(Integer tileNumber, String letter, Integer score)

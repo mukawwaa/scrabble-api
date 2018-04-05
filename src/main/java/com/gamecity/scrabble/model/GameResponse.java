@@ -13,6 +13,7 @@ public class GameResponse
 
     public GameResponse()
     {
+        super();
         this.responseCode = 200;
     }
 

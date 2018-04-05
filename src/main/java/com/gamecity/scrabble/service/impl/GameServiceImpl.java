@@ -31,8 +31,8 @@ import com.gamecity.scrabble.service.DictionaryService;
 import com.gamecity.scrabble.service.GameService;
 import com.gamecity.scrabble.service.UserService;
 import com.gamecity.scrabble.service.WordLogService;
-import com.gamecity.scrabble.service.exception.GameError;
 import com.gamecity.scrabble.service.exception.GameException;
+import com.gamecity.scrabble.service.exception.error.GameError;
 import com.gamecity.scrabble.util.DateUtils;
 import com.gamecity.scrabble.util.ValidationUtils;
 
@@ -68,14 +68,14 @@ public class GameServiceImpl implements GameService
     @Override
     public void start(Board board)
     {
-        board.setStartDate(DateUtils.nowAsUnixTime());
+        board.setStartDate(DateUtils.nowAsDate());
         board.setStatus(BoardStatus.STARTED);
         board.setOrderNo(Constants.BoardSettings.FIRST_ROUND);
         boardService.save(board);
 
         createBoardUsers(board.getId());
         contentService.updateContent(board.getId(), board.getOrderNo());
-        contentService.updatePlayers(board.getId(), board.getOrderNo(), true);
+        contentService.updateActivePlayers(board.getId(), board.getOrderNo());
     }
 
     @Override
@@ -90,7 +90,8 @@ public class GameServiceImpl implements GameService
         validateRack(rack);
         calculateScore(board, rack, playTime);
         assignNextUser(board);
-        contentService.updatePlayers(board.getId(), board.getOrderNo(), true);
+        contentService.updateContent(board.getId(), board.getOrderNo());
+        contentService.updateActivePlayers(board.getId(), board.getOrderNo());
     }
 
     @Override
@@ -119,7 +120,7 @@ public class GameServiceImpl implements GameService
     @Override
     public void calculateScore(Board board, Rack rack, Long playTime)
     {
-        boolean isUsed = rack.getTiles().stream().anyMatch(tile -> tile.isUsed());
+        boolean isUsed = rack.getTiles().stream().anyMatch(RackTile::isUsed);
         if (isUsed)
         {
             PlayHelper helper = new PlayHelper(board);
@@ -130,7 +131,8 @@ public class GameServiceImpl implements GameService
             addScore(helper);
             logWords(helper, board, playTime);
             updateUserScore(helper);
-            updateBoard(helper, board, rack);
+            updateBoard(helper, board);
+            contentService.updateRack(rack);
         }
     }
 
@@ -146,7 +148,7 @@ public class GameServiceImpl implements GameService
 
     private void locateRackTiles(PlayHelper helper, Rack rack)
     {
-        rack.getTiles().stream().filter(rackTile -> rackTile.isUsed()).forEach(rackTile -> {
+        rack.getTiles().stream().filter(RackTile::isUsed).forEach(rackTile -> {
             helper.setCellValue(rackTile.getRowNumber(), rackTile.getColumnNumber(), rackTile.getLetter());
         });
     }
@@ -254,7 +256,7 @@ public class GameServiceImpl implements GameService
 
     private void linkNewWords(PlayHelper helper)
     {
-        List<Word> linkedWords = helper.getValidatedWords().stream().filter(word -> word.isLinkedWithExistingLetter()).collect(Collectors.toList());
+        List<Word> linkedWords = helper.getValidatedWords().stream().filter(Word::isLinkedWithExistingLetter).collect(Collectors.toList());
         linkedWords.forEach(word -> followLinks(word, helper.getValidatedWords()));
 
         List<Word> unlinkedWords =
@@ -309,7 +311,7 @@ public class GameServiceImpl implements GameService
 
     private void logWords(PlayHelper helper, Board board, Long playTime)
     {
-        Integer duration = Long.valueOf(playTime - board.getLastUpdateDate()).intValue();
+        Integer duration = Long.valueOf(playTime - board.getLastUpdateDate().getTime()).intValue();
         helper.getWords().forEach(word -> {
             WordLog log = new WordLog();
             log.setBoard(board);
@@ -322,11 +324,9 @@ public class GameServiceImpl implements GameService
         });
     }
 
-    private void updateBoard(PlayHelper helper, Board board, Rack rack)
+    private void updateBoard(PlayHelper helper, Board board)
     {
-        helper.getUpdatedCells().stream().filter(cell -> cell != null && cell.isUsed()).forEach(cell -> contentService.updateCell(cell));
-        contentService.updateRack(rack);
-        contentService.updateContent(board.getId(), board.getOrderNo());
+        helper.getUpdatedCells().stream().filter(BoardCell::isUsed).forEach(cell -> contentService.updateCell(cell));
         board.setOrderNo(board.getOrderNo() + 1);
     }
 

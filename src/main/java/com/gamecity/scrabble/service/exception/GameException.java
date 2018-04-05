@@ -2,6 +2,8 @@ package com.gamecity.scrabble.service.exception;
 
 import java.util.stream.IntStream;
 
+import com.gamecity.scrabble.service.exception.error.GameError;
+
 public class GameException extends RuntimeException
 {
     private static final long serialVersionUID = -3257022882385328074L;

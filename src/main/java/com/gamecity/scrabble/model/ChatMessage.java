@@ -1,6 +1,7 @@
 package com.gamecity.scrabble.model;
 
 import java.io.Serializable;
+import java.util.Date;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -14,7 +15,12 @@ public class ChatMessage implements Serializable
     private Long userId;
     private String username;
     private String message;
-    private Long createDate;
+    private Date createDate;
+
+    public ChatMessage()
+    {
+        super();
+    }
 
     public ChatMessage(BoardChat chat)
     {
@@ -65,12 +71,12 @@ public class ChatMessage implements Serializable
         this.message = message;
     }
 
-    public Long getCreateDate()
+    public Date getCreateDate()
     {
         return createDate;
     }
 
-    public void setCreateDate(Long createDate)
+    public void setCreateDate(Date createDate)
     {
         this.createDate = createDate;
     }

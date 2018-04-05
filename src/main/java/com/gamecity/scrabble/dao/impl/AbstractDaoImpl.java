@@ -42,8 +42,8 @@ public abstract class AbstractDaoImpl<T extends AbstractEntity> implements BaseD
     @Override
     public T save(T entity)
     {
-        entity.setCreateDate(entity.getId() == null ? DateUtils.nowAsUnixTime() : entity.getCreateDate());
-        entity.setLastUpdateDate(entity.getId() != null ? DateUtils.nowAsUnixTime() : null);
+        entity.setCreateDate(entity.getId() == null ? DateUtils.nowAsDate() : entity.getCreateDate());
+        entity.setLastUpdateDate(entity.getId() != null ? DateUtils.nowAsDate() : null);
         entityManager.persist(entity);
         return entity;
     }

@@ -5,22 +5,16 @@ import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.PatternTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
-
-import com.gamecity.scrabble.Constants;
-import com.gamecity.scrabble.entity.BoardUserHistory;
-import com.gamecity.scrabble.listener.RedisListener;
 
 @Configuration
 @EnableCaching
+@PropertySource("classpath:redis.properties")
 public class CacheConfig extends CachingConfigurerSupport
 {
     @Value("${redis.host}")
@@ -54,25 +48,5 @@ public class CacheConfig extends CachingConfigurerSupport
         RedisCacheManager cacheManager = RedisCacheManager.create(connectionFactory);
         cacheManager.afterPropertiesSet();
         return cacheManager;
-    }
-
-    @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(JedisConnectionFactory connectionFactory, RedisListener redisListener)
-    {
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(
-            messageListenerAdapter(redisListener, Constants.RedisListener.Method.RECEIVE_USER_UPDATE, BoardUserHistory.class),
-            new PatternTopic(Constants.RedisListener.BOARD_USER_HISTORY));
-        container.afterPropertiesSet();
-        return container;
-    }
-
-    private MessageListenerAdapter messageListenerAdapter(Object listener, String method, Class clazz)
-    {
-        MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(listener, method);
-        messageListenerAdapter.setSerializer(new Jackson2JsonRedisSerializer<>(clazz));
-        messageListenerAdapter.afterPropertiesSet();
-        return messageListenerAdapter;
     }
 }

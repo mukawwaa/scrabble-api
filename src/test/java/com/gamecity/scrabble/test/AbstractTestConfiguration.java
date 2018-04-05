@@ -13,8 +13,5 @@ import com.gamecity.scrabble.config.WebConfig;
 @ContextHierarchy({ @ContextConfiguration(classes = WebConfig.class) })
 public abstract class AbstractTestConfiguration
 {
-    protected static final Long CREATOR_ID = 1L;
-    protected static final Long ADMIN_ID = 2L;
-    protected static final Long PLAYER_ID = 3L;
     protected static final Long DEFAULT_RULE_ID = 1L;
 }

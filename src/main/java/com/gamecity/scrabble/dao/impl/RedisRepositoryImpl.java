@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository;
 import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.BoardChat;
-import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.model.BoardContent;
 import com.gamecity.scrabble.model.BoardPlayer;
 import com.gamecity.scrabble.model.ChatMessage;
@@ -28,13 +27,6 @@ public class RedisRepositoryImpl implements RedisRepository
         ChatMessage chatMessage = new ChatMessage(chat);
         redisTemplate.boundListOps(Constants.RedisListener.BOARD_CHAT + ":" + chatMessage.getBoardId()).rightPush(chatMessage);
         redisTemplate.convertAndSend(Constants.RedisListener.BOARD_CHAT, chatMessage);
-    }
-
-    @Override
-    public void updateBoardUserHistory(BoardUserHistory history)
-    {
-        redisTemplate.boundListOps(Constants.RedisListener.BOARD_USER_HISTORY + ":" + history.getBoardId()).rightPush(history);
-        redisTemplate.convertAndSend(Constants.RedisListener.BOARD_USER_HISTORY, history);
     }
 
     @Override
@@ -61,8 +53,8 @@ public class RedisRepositoryImpl implements RedisRepository
     @Override
     public BoardPlayer getBoardPlayers(Long boardId, Integer orderNo)
     {
-        BoundListOperations<String, Object> contents = redisTemplate.boundListOps(Constants.RedisListener.BOARD_PLAYERS + ":" + boardId);
-        return (BoardPlayer) contents.range(orderNo, -1).stream().findFirst().get();
+        BoundListOperations<String, Object> players = redisTemplate.boundListOps(Constants.RedisListener.BOARD_PLAYERS + ":" + boardId);
+        return (BoardPlayer) players.range(orderNo - 1, -1).stream().findFirst().get();
     }
 
     @Override

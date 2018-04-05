@@ -1,10 +1,14 @@
 package com.gamecity.scrabble.entity;
 
+import java.util.Date;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.persistence.Transient;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -31,8 +35,9 @@ public class BoardUser extends AbstractEntity
     @Column(name = "score", nullable = false)
     private Integer score = 0;
 
-    @Column(name = "join_date", nullable = false, columnDefinition = "bigint default 0")
-    private Long joinDate;
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "join_date", nullable = false, columnDefinition = "datetime default now()")
+    private Date joinDate;
 
     @Transient
     private boolean enabled;
@@ -77,12 +82,12 @@ public class BoardUser extends AbstractEntity
         this.score = score;
     }
 
-    public Long getJoinDate()
+    public Date getJoinDate()
     {
         return joinDate;
     }
 
-    public void setJoinDate(Long joinDate)
+    public void setJoinDate(Date joinDate)
     {
         this.joinDate = joinDate;
     }

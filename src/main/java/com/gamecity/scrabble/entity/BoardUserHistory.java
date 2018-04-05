@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @Entity(name = "BoardUserHistory")
 @Table(name = "board_user_history")
 @NamedQueries({
-    @NamedQuery(name = "loadHistoryByUserId", query = "Select b from BoardUserHistory b where b.boardId = :boardId and b.userId = :userId"),
+    @NamedQuery(name = "loadLastActionByUserId", query = "Select b from BoardUserHistory b where b.boardId = :boardId and b.userId = :userId order by id desc"),
     @NamedQuery(name = "loadWaitingUsersByBoardId", query = "Select b from BoardUserHistory b where b.boardId = :boardId"),
     @NamedQuery(name = "getWaitingUserCount", query = "Select count(b) from BoardUserHistory b where b.boardId = :boardId")
 })
@@ -31,8 +31,8 @@ public class BoardUserHistory extends AbstractEntity implements Serializable
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "status")
-    private PlayerStatus status;
+    @Column(name = "action")
+    private PlayerAction action;
 
     public Long getBoardId()
     {
@@ -54,14 +54,14 @@ public class BoardUserHistory extends AbstractEntity implements Serializable
         this.userId = userId;
     }
 
-    public PlayerStatus getStatus()
+    public PlayerAction getAction()
     {
-        return status;
+        return action;
     }
 
-    public void setStatus(PlayerStatus status)
+    public void setAction(PlayerAction action)
     {
-        this.status = status;
+        this.action = action;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.gamecity.scrabble.service.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -22,6 +23,7 @@ import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.entity.CellRule;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.TileRule;
+import com.gamecity.scrabble.entity.cassandra.BoardUserCounter;
 import com.gamecity.scrabble.model.BoardCell;
 import com.gamecity.scrabble.model.BoardContent;
 import com.gamecity.scrabble.model.BoardPlayer;
@@ -97,8 +99,8 @@ public class ContentServiceImpl implements ContentService
     @Override
     public BoardPlayer getPlayers(Long boardId, Integer orderNo)
     {
-        Board board = boardService.get(boardId);
-        if (orderNo > board.getOrderNo())
+        BoardUserCounter boardUserCounter = boardUserHistoryService.getBoardUserCounter(boardId);
+        if (orderNo > boardUserCounter.getActionCount().intValue())
         {
             return null;
         }
@@ -113,18 +115,44 @@ public class ContentServiceImpl implements ContentService
     }
 
     @Override
-    public void updatePlayers(Long boardId, Integer orderNo, boolean started)
+    public void updateActivePlayers(Long boardId, Integer orderNo)
     {
         Board board = boardService.get(boardId);
-        BoardPlayer player = new BoardPlayer();
-        player.setBoardId(boardId);
-        player.setOrderNo(orderNo);
-        player.setCurrentUserId(board.getCurrentUser().getId());
-        player.setCurrentUsername(board.getCurrentUser().getName());
+        BoardPlayer playerContent = new BoardPlayer();
+        playerContent.setBoardId(boardId);
+        playerContent.setOrderNo(orderNo);
+        playerContent.setCurrentUserId(board.getCurrentUser().getId());
+        playerContent.setCurrentUsername(board.getCurrentUser().getName());
 
-        List<Player> activePlayers = getActivePlayers(board, started);
-        player.setPlayers(activePlayers);
-        redisRepository.sendBoardPlayers(player);
+        List<Player> activePlayers = getActivePlayers(board);
+        playerContent.setPlayers(activePlayers);
+        redisRepository.sendBoardPlayers(playerContent);
+    }
+
+    @Override
+    public void updateWaitingPlayers(Long boardId, Integer orderNo, BoardUserHistory boardUserHistory)
+    {
+        Board board = boardService.get(boardId);
+        BoardPlayer playerContent = new BoardPlayer();
+        playerContent.setBoardId(boardId);
+        playerContent.setOrderNo(orderNo);
+        playerContent.setCurrentUserId(board.getCurrentUser().getId());
+        playerContent.setCurrentUsername(board.getCurrentUser().getName());
+
+        Integer previousOrder = orderNo - 1;
+        Player player = createWaitingPlayer(boardUserHistory, board);
+        if (Constants.BoardSettings.DEFAULT_ORDER.equals(previousOrder))
+        {
+            playerContent.setPlayers(new ArrayList<Player>());
+            playerContent.getPlayers().add(player);
+        }
+        else
+        {
+            BoardPlayer lastPlayer = redisRepository.getBoardPlayers(boardId, previousOrder);
+            lastPlayer.getPlayers().add(createWaitingPlayer(boardUserHistory, board));
+            playerContent.setPlayers(lastPlayer.getPlayers());
+        }
+        redisRepository.sendBoardPlayers(playerContent);
     }
 
     @Override
@@ -190,7 +218,7 @@ public class ContentServiceImpl implements ContentService
         Rule rule = board.getRule();
 
         List<BoardTile> boardTiles = getTiles(board.getId(), rule.getId());
-        rack.getTiles().stream().filter(rackTile -> rackTile.isUsed()).forEach(rackTile -> useRackTile(rackTile, rule, boardTiles));
+        rack.getTiles().stream().filter(RackTile::isUsed).forEach(rackTile -> useRackTile(rackTile, rule, boardTiles));
         boardTiles.forEach(boardTile -> contentService.updateTile(boardTile));
 
         return rack;
@@ -240,18 +268,10 @@ public class ContentServiceImpl implements ContentService
         return Arrays.asList(cells);
     }
 
-    private List<Player> getActivePlayers(Board board, boolean started)
+    private List<Player> getActivePlayers(Board board)
     {
-        if (started)
-        {
-            List<BoardUserHistory> activeUsers = boardUserHistoryService.loadAllWaitingUsers(board.getId());
-            return activeUsers.stream().map(boardUserHistory -> createWaitingPlayer(boardUserHistory, board)).collect(Collectors.toList());
-        }
-        else
-        {
-            List<BoardUser> activeUsers = boardUserService.loadAllActiveUsers(board.getId());
-            return activeUsers.stream().map(boardUserHistory -> createActivePlayer(boardUserHistory, board)).collect(Collectors.toList());
-        }
+        List<BoardUser> activeUsers = boardUserService.loadAllActiveUsers(board.getId());
+        return activeUsers.stream().map(boardUserHistory -> createActivePlayer(boardUserHistory, board)).collect(Collectors.toList());
     }
 
     private Player createWaitingPlayer(BoardUserHistory boardUserHistory, Board board)

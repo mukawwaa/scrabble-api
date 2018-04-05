@@ -5,19 +5,38 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.gamecity.scrabble.entity.Board;
+import com.gamecity.scrabble.entity.BoardStatus;
+import com.gamecity.scrabble.entity.User;
 import com.gamecity.scrabble.model.Rack;
-import com.gamecity.scrabble.service.exception.GameError;
+import com.gamecity.scrabble.model.RackTile;
+import com.gamecity.scrabble.service.ContentService;
+import com.gamecity.scrabble.service.GameService;
 import com.gamecity.scrabble.service.exception.GameException;
+import com.gamecity.scrabble.service.exception.error.GameError;
 import com.gamecity.scrabble.util.DateUtils;
 
-public class GameTest extends AbstractGameTest
+public class GameTest extends AbstractScrabbleTest
 {
+    private User creator;
+    private User player;
+    private Board board;
+
+    @Autowired
+    protected ContentService contentService;
+
+    @Autowired
+    protected GameService gameService;
+
     @Before
     public void before()
     {
         super.setUp();
-        createBoardAndStartGame(creator);
+        creator = createUser();
+        player = createUser();
+        createBoardAndStartGame();
     }
 
     @Test
@@ -29,7 +48,7 @@ public class GameTest extends AbstractGameTest
     @Test
     public void testRackIsNotEmptyWhenGameStarted()
     {
-        fillRack(creator.getId());
+        Rack rack = contentService.getRack(board.getId(), creator.getId());
         assertEquals(rack.getTiles().size(), 7);
     }
 
@@ -38,7 +57,7 @@ public class GameTest extends AbstractGameTest
     {
         try
         {
-            fillRack(player.getId());
+            Rack rack = contentService.getRack(board.getId(), createUser().getId());
             gameService.validateCurrentPlayer(board, rack);
             assertEquals(true, false);
         }
@@ -53,7 +72,7 @@ public class GameTest extends AbstractGameTest
     {
         try
         {
-            fillRack(creator.getId());
+            Rack rack = contentService.getRack(board.getId(), creator.getId());
             rack.getTiles().remove(rack.getTiles().size() - 1);
             gameService.validateRack(rack);
         }
@@ -66,19 +85,19 @@ public class GameTest extends AbstractGameTest
     @Test
     public void testTurnPassedWhenNoMovesMade()
     {
-        fillRack(creator.getId());
+        Rack rack = contentService.getRack(board.getId(), creator.getId());
         gameService.calculateScore(board, rack, DateUtils.nowAsUnixTime());
     }
 
     // ------------------------------------------- waiting -------------------------------------------
 
-//    @Test
+    // @Test
     public void testStartingCellNotEmptyInFirstPlay()
     {
         try
         {
-            fillRack(creator.getId());
-            play();
+            Rack rack = contentService.getRack(board.getId(), creator.getId());
+            gameService.play(rack);
         }
         catch (GameException e)
         {
@@ -86,12 +105,12 @@ public class GameTest extends AbstractGameTest
         }
     }
 
-//    @Test
+    // @Test
     public void testCorrectMove()
     {
         try
         {
-            createCorrectRack(board.getId(), creator.getId());
+            Rack rack = createCorrectRack(board.getId(), creator.getId());
             gameService.play(rack);
             rack = contentService.getRack(board.getId(), creator.getId());
         }
@@ -102,12 +121,12 @@ public class GameTest extends AbstractGameTest
         }
     }
 
-//    @Test
+    // @Test
     public void testWrongMove()
     {
         try
         {
-            createWrongRack(board.getId(), creator.getId());
+            Rack rack = createWrongRack(board.getId(), creator.getId());
             gameService.play(rack);
             assertEquals(true, false);
         }
@@ -117,19 +136,19 @@ public class GameTest extends AbstractGameTest
         }
     }
 
-//    @Test
+    // @Test
     public void testRackNotEmptyWhenGameStarted()
     {
         Rack rack = contentService.getRack(board.getId(), creator.getId());
         assertTrue(rack.getTiles().size() > 0);
     }
 
-//    @Test
+    // @Test
     public void testRackNotEmptyWhenTurnChanged()
     {
         try
         {
-            playAMove();
+            playAMove(creator);
             board = boardService.get(board.getId());
             Rack rack = contentService.getRack(board.getId(), board.getCurrentUser().getId());
             assertTrue(rack.getTiles().size() > 0);
@@ -141,4 +160,50 @@ public class GameTest extends AbstractGameTest
         }
     }
 
+    // ---------------------------------------------------- private methods ----------------------------------------------------
+
+    private void createBoardAndStartGame()
+    {
+        board = createBoard(creator, 2);
+        boardService.join(board.getId(), player.getId());
+        board = boardService.get(board.getId());
+        assertTrue(BoardStatus.STARTED.equals(board.getStatus()));
+    }
+
+    private void playAMove(User user)
+    {
+        Rack rack = createCorrectRack(board.getId(), user.getId());
+        gameService.play(rack);
+    }
+
+    private Rack createCorrectRack(Long boardId, Long userId)
+    {
+        Rack rack = contentService.getRack(board.getId(), userId);
+        int columnNumber = 5;
+        for (RackTile rackTile : rack.getTiles())
+        {
+            rackTile.setColumnNumber(columnNumber);
+            rackTile.setRowNumber(8);
+            rackTile.setUsed(true);
+            columnNumber = columnNumber + 1;
+        }
+        return rack;
+    }
+
+    private Rack createWrongRack(Long boardId, Long userId)
+    {
+        Rack rack = contentService.getRack(board.getId(), userId);
+        int columnNumber = 4;
+        for (RackTile rackTile : rack.getTiles())
+        {
+            if (columnNumber % 2 == 0)
+            {
+                rackTile.setColumnNumber(columnNumber);
+                rackTile.setRowNumber(8);
+                rackTile.setUsed(true);
+            }
+            columnNumber = columnNumber + 1;
+        }
+        return rack;
+    }
 }

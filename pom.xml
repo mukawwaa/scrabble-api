@@ -8,6 +8,7 @@
 
     <properties>
         <aspectj.version>1.8.13</aspectj.version>
+        <cassandra.version>3.4.0</cassandra.version>
         <commons.lang.version>2.6</commons.lang.version>
         <commons.pools2.version>2.4.3</commons.pools2.version>
         <gson.version>2.2.2</gson.version>
@@ -248,6 +249,17 @@
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
             <version>${aspectj.version}</version>
+        </dependency>
+        <!-- cassandra -->
+        <dependency>
+          <groupId>com.datastax.cassandra</groupId>
+          <artifactId>cassandra-driver-core</artifactId>
+          <version>${cassandra.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.datastax.cassandra</groupId>
+          <artifactId>cassandra-driver-mapping</artifactId>
+          <version>${cassandra.version}</version>
         </dependency>
     </dependencies>
 

@@ -1,6 +1,7 @@
 package com.gamecity.scrabble.entity;
 
 import java.io.Serializable;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -10,6 +11,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -52,11 +55,13 @@ public class Board extends AbstractEntity implements Serializable
     @Column(name = "order_no", nullable = false)
     private Integer orderNo;
 
+    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "start_date")
-    private Long startDate;
+    private Date startDate;
 
+    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "end_date")
-    private Long endDate;
+    private Date endDate;
 
     public User getOwner()
     {
@@ -138,22 +143,22 @@ public class Board extends AbstractEntity implements Serializable
         this.orderNo = orderNo;
     }
 
-    public Long getStartDate()
+    public Date getStartDate()
     {
         return startDate;
     }
 
-    public void setStartDate(Long startDate)
+    public void setStartDate(Date startDate)
     {
         this.startDate = startDate;
     }
 
-    public Long getEndDate()
+    public Date getEndDate()
     {
         return endDate;
     }
 
-    public void setEndDate(Long endDate)
+    public void setEndDate(Date endDate)
     {
         this.endDate = endDate;
     }
