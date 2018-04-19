@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.gamecity</groupId>
     <artifactId>scrabble-api</artifactId>
@@ -11,6 +10,7 @@
         <cassandra.version>3.4.0</cassandra.version>
         <commons.lang.version>2.6</commons.lang.version>
         <commons.pools2.version>2.4.3</commons.pools2.version>
+        <environment>dev</environment>
         <gson.version>2.2.2</gson.version>
         <hibernate.version>5.2.12.Final</hibernate.version>
         <jackson.version>2.9.3</jackson.version>
@@ -20,7 +20,8 @@
         <jersey.version>1.19.4</jersey.version>
         <junit.version>4.12</junit.version>
         <logback.version>1.2.3</logback.version>
-        <mysql.version>6.0.6</mysql.version>
+        <mockito.version>2.18.0</mockito.version>
+        <mysql.version>5.1.42</mysql.version>
         <spring.data.version>2.0.2.RELEASE</spring.data.version>
         <spring.framework.version>5.0.2.RELEASE</spring.framework.version>
         <spring.security.version>5.0.0.RELEASE</spring.security.version>
@@ -46,6 +47,11 @@
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
         </dependency>
         <!-- orm -->
         <dependency>
@@ -252,14 +258,14 @@
         </dependency>
         <!-- cassandra -->
         <dependency>
-          <groupId>com.datastax.cassandra</groupId>
-          <artifactId>cassandra-driver-core</artifactId>
-          <version>${cassandra.version}</version>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-core</artifactId>
+            <version>${cassandra.version}</version>
         </dependency>
         <dependency>
-          <groupId>com.datastax.cassandra</groupId>
-          <artifactId>cassandra-driver-mapping</artifactId>
-          <version>${cassandra.version}</version>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-mapping</artifactId>
+            <version>${cassandra.version}</version>
         </dependency>
     </dependencies>
 
@@ -282,5 +288,13 @@
                 </configuration>
             </plugin>
         </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>src/main/environment/${environment}</directory>
+            </resource>
+        </resources>
     </build>
 </project>
