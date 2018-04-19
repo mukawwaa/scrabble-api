@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -14,8 +15,14 @@ import org.apache.commons.lang.builder.ToStringStyle;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Entity(name = "User")
-@Table(name = "users", uniqueConstraints = { @UniqueConstraint(name = "UK_USER_NAME", columnNames = "username"), @UniqueConstraint(name = "UK_USER_EMAIL", columnNames = "email") })
-@NamedQuery(name = "findByUsername", query = "Select u from User u where u.username = :username")
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(name = "UK_USER_NAME", columnNames = "username"),
+    @UniqueConstraint(name = "UK_USER_EMAIL", columnNames = "email")
+})
+@NamedQueries({
+    @NamedQuery(name = "findByUsername", query = "Select u from User u where u.username = :username"),
+    @NamedQuery(name = "findByEmail", query = "Select u from User u where u.email= :email")
+})
 public class User extends AbstractEntity implements UserDetails
 {
     private static final long serialVersionUID = 7582993979095846948L;
@@ -36,16 +43,16 @@ public class User extends AbstractEntity implements UserDetails
     private String password;
 
     @Column(name = "enabled", nullable = false, columnDefinition = "tinyint default 1")
-    private boolean enabled;
+    private boolean enabled = true;
 
     @Column(name = "account_non_expired", nullable = false, columnDefinition = "tinyint default 1")
-    private boolean accountNonExpired;
+    private boolean accountNonExpired = true;
 
     @Column(name = "account_non_locked", nullable = false, columnDefinition = "tinyint default 1")
-    private boolean accountNonLocked;
+    private boolean accountNonLocked = true;
 
     @Column(name = "credentials_non_expired", nullable = false, columnDefinition = "tinyint default 1")
-    private boolean credentialsNonExpired;
+    private boolean credentialsNonExpired = true;
 
     @Transient
     private Collection<? extends BaseAuthority> authorities;

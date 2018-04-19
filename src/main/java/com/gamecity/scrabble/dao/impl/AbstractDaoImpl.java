@@ -35,7 +35,7 @@ public abstract class AbstractDaoImpl<T extends AbstractEntity> implements BaseD
     @Override
     public List<T> list()
     {
-        String query = "select entity from " + ((Entity) clazz.getAnnotation(Entity.class)).name() + " entity orderNo by id asc";
+        String query = "select entity from " + ((Entity) clazz.getAnnotation(Entity.class)).name() + " entity order by id asc";
         return (List<T>) entityManager.createQuery(query).getResultList();
     }
 

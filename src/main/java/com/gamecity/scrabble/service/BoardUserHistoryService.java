@@ -12,8 +12,6 @@ public interface BoardUserHistoryService extends BaseService<BoardUserHistory>
 
     BoardUserCounter calculatePlayerCount(Long boardId, PlayerAction action);
 
-    Integer getWaitingUserCount(Long boardId);
-
     BoardUserCounter getBoardUserCounter(Long boardId);
 
     List<BoardUserHistory> loadAllWaitingUsers(Long boardId);

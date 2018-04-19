@@ -1,0 +1,17 @@
+<configuration>
+    <property resource="logger.properties" />
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${logger.path}/scrabble-api.log</file>
+        <encoder>
+            <pattern>%d{dd/MM/yy HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.gamecity.scrabble.service.impl.GameServiceImpl" level="INFO" />
+    <logger name="com.gamecity.scrabble.service.impl.ContentServiceImpl" level="INFO" />
+    <logger name="com.gamecity.scrabble.aspect.RsourceAspect" level="INFO" />
+
+    <root level="INFO">
+        <appender-ref ref="FILE" />
+    </root>
+</configuration>

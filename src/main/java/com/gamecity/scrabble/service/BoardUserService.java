@@ -8,7 +8,7 @@ public interface BoardUserService extends BaseService<BoardUser>
 {
     BoardUser loadByUserId(Long boardId, Long userId);
 
-    BoardUser getNextUser(Long boardId);
+    BoardUser getNextUser(Long boardId, Integer currentOrder);
 
     List<BoardUser> loadAllActiveUsers(Long boardId);
 }

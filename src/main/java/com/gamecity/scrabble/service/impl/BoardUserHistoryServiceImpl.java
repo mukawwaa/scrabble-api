@@ -43,12 +43,6 @@ public class BoardUserHistoryServiceImpl extends AbstractServiceImpl<BoardUserHi
     }
 
     @Override
-    public Integer getWaitingUserCount(Long boardId)
-    {
-        return boardUserCounterRepository.getBoardUserCounter(boardId).getPlayerCount().intValue();
-    }
-
-    @Override
     public BoardUserCounter getBoardUserCounter(Long boardId)
     {
         return boardUserCounterRepository.getBoardUserCounter(boardId);

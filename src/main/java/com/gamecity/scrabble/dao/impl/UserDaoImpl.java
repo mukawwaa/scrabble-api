@@ -15,4 +15,10 @@ public class UserDaoImpl extends AbstractDaoImpl<User> implements UserDao
     {
         return findByNamedQuery("findByUsername", Arrays.asList("username"), username);
     }
+
+    @Override
+    public User findByEmail(String email)
+    {
+        return findByNamedQuery("findByEMail", Arrays.asList("email"), email);
+    }
 }

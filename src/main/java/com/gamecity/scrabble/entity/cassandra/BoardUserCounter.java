@@ -22,6 +22,18 @@ public class BoardUserCounter
     @Column(name = BoardUserCounter.ACTION_COUNT)
     private Long actionCount;
 
+    public BoardUserCounter()
+    {
+        super();
+    }
+
+    public BoardUserCounter(Long boardId, Long playerCount, Long actionCount)
+    {
+        this.boardId = boardId;
+        this.playerCount = playerCount;
+        this.actionCount = actionCount;
+    }
+
     public Long getBoardId()
     {
         return boardId;

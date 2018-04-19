@@ -32,7 +32,7 @@ public class BoardChatServiceImpl extends AbstractServiceImpl<BoardChat, BoardCh
     @Override
     public void send(Long boardId, Long userId, String message)
     {
-        Board board = boardService.checkBoardAvailable(boardId);
+        Board board = boardService.validateAndGetAvailableBoard(boardId);
         User user = userService.get(userId);
         BoardChat chat = new BoardChat(board, user, message.replace("\"", ""));
         chat = baseDao.save(chat);

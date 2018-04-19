@@ -9,6 +9,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CachePut;
@@ -18,8 +20,8 @@ import org.springframework.stereotype.Service;
 import com.gamecity.scrabble.Constants;
 import com.gamecity.scrabble.dao.RedisRepository;
 import com.gamecity.scrabble.entity.Board;
+import com.gamecity.scrabble.entity.BoardStatus;
 import com.gamecity.scrabble.entity.BoardUser;
-import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.entity.CellRule;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.TileRule;
@@ -41,6 +43,8 @@ import com.gamecity.scrabble.service.UserService;
 @Service(value = "contentService")
 public class ContentServiceImpl implements ContentService
 {
+    private static final Logger logger = LoggerFactory.getLogger(ContentServiceImpl.class);
+
     @Autowired
     private RuleService ruleService;
 
@@ -99,8 +103,20 @@ public class ContentServiceImpl implements ContentService
     @Override
     public BoardPlayer getPlayers(Long boardId, Integer orderNo)
     {
-        BoardUserCounter boardUserCounter = boardUserHistoryService.getBoardUserCounter(boardId);
-        if (orderNo > boardUserCounter.getActionCount().intValue())
+        logger.info("Getting players for board {} with order {}.", boardId, orderNo);
+        Board board = boardService.get(boardId);
+
+        int currentOrder;
+        if (BoardStatus.STARTED.equals(board.getStatus()))
+        {
+            currentOrder = board.getOrderNo() + board.getUserCount() - 1;
+        }
+        else
+        {
+            BoardUserCounter boardUserCounter = boardUserHistoryService.getBoardUserCounter(boardId);
+            currentOrder = boardUserCounter.getActionCount().intValue();
+        }
+        if (orderNo > currentOrder)
         {
             return null;
         }
@@ -111,6 +127,7 @@ public class ContentServiceImpl implements ContentService
             return null;
         }
 
+        logger.info("Player update found for board {} with order {}.", boardId, orderNo);
         return player;
     }
 
@@ -130,7 +147,7 @@ public class ContentServiceImpl implements ContentService
     }
 
     @Override
-    public void updateWaitingPlayers(Long boardId, Integer orderNo, BoardUserHistory boardUserHistory)
+    public void updateWaitingPlayers(Long boardId, Long userId, Integer orderNo)
     {
         Board board = boardService.get(boardId);
         BoardPlayer playerContent = new BoardPlayer();
@@ -140,7 +157,7 @@ public class ContentServiceImpl implements ContentService
         playerContent.setCurrentUsername(board.getCurrentUser().getName());
 
         Integer previousOrder = orderNo - 1;
-        Player player = createWaitingPlayer(boardUserHistory, board);
+        Player player = createWaitingPlayer(boardId, userId);
         if (Constants.BoardSettings.DEFAULT_ORDER.equals(previousOrder))
         {
             playerContent.setPlayers(new ArrayList<Player>());
@@ -149,7 +166,7 @@ public class ContentServiceImpl implements ContentService
         else
         {
             BoardPlayer lastPlayer = redisRepository.getBoardPlayers(boardId, previousOrder);
-            lastPlayer.getPlayers().add(createWaitingPlayer(boardUserHistory, board));
+            lastPlayer.getPlayers().add(player);
             playerContent.setPlayers(lastPlayer.getPlayers());
         }
         redisRepository.sendBoardPlayers(playerContent);
@@ -158,6 +175,7 @@ public class ContentServiceImpl implements ContentService
     @Override
     public BoardContent getContent(Long boardId, Integer orderNo)
     {
+        logger.info("Getting content for board {} with order {}.", boardId, orderNo);
         Board board = boardService.get(boardId);
         if (orderNo > board.getOrderNo())
         {
@@ -170,6 +188,7 @@ public class ContentServiceImpl implements ContentService
             return null;
         }
 
+        logger.info("Content update found for board {} with order {}.", boardId, orderNo);
         return content;
     }
 
@@ -274,12 +293,12 @@ public class ContentServiceImpl implements ContentService
         return activeUsers.stream().map(boardUserHistory -> createActivePlayer(boardUserHistory, board)).collect(Collectors.toList());
     }
 
-    private Player createWaitingPlayer(BoardUserHistory boardUserHistory, Board board)
+    private Player createWaitingPlayer(Long boardId, Long userId)
     {
         Player player = new Player();
-        player.setBoardId(boardUserHistory.getBoardId());
-        player.setUserId(boardUserHistory.getUserId());
-        player.setUsername(userService.get(boardUserHistory.getUserId()).getName());
+        player.setBoardId(boardId);
+        player.setUserId(userId);
+        player.setUsername(userService.get(userId).getName());
         player.setScore(0);
         player.setOwnTurn(false);
         return player;

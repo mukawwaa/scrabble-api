@@ -6,6 +6,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,8 @@ import com.gamecity.scrabble.util.ValidationUtils;
 @Service(value = "gameService")
 public class GameServiceImpl implements GameService
 {
+    private static final Logger logger = LoggerFactory.getLogger(GameServiceImpl.class);
+
     @Autowired
     private BoardService boardService;
 
@@ -68,30 +72,35 @@ public class GameServiceImpl implements GameService
     @Override
     public void start(Board board)
     {
+        logger.info("Game starting for board {}.", board.getId());
         board.setStartDate(DateUtils.nowAsDate());
         board.setStatus(BoardStatus.STARTED);
         board.setOrderNo(Constants.BoardSettings.FIRST_ROUND);
         boardService.save(board);
 
         createBoardUsers(board.getId());
+
         contentService.updateContent(board.getId(), board.getOrderNo());
-        contentService.updateActivePlayers(board.getId(), board.getOrderNo());
+        contentService.updateActivePlayers(board.getId(), board.getUserCount());
+        logger.info("Game started in board {} with content order {} and player order {}.", board.getId(), board.getOrderNo(), board.getUserCount());
     }
 
     @Override
     @Transactional
     public void play(Rack rack)
     {
+        logger.info("Playing in board {} for user {}.", rack.getBoardId(), rack.getUserId());
         Long playTime = DateUtils.nowAsUnixTime();
         ValidationUtils.validateParameters(rack, rack.getBoardId(), rack.getUserId(), rack.getTiles());
-        Board board = boardService.checkBoardStarted(rack.getBoardId());
+        Board board = boardService.validateAndGetStartedBoard(rack.getBoardId());
 
         validateCurrentPlayer(board, rack);
         validateRack(rack);
         calculateScore(board, rack, playTime);
         assignNextUser(board);
         contentService.updateContent(board.getId(), board.getOrderNo());
-        contentService.updateActivePlayers(board.getId(), board.getOrderNo());
+        contentService.updateActivePlayers(board.getId(), board.getOrderNo() + board.getUserCount() - 1);
+        logger.info("Played in board {} with content order {} and player order {}.", board.getId(), board.getOrderNo(), board.getOrderNo() + board.getUserCount() - 1);
     }
 
     @Override
@@ -139,8 +148,10 @@ public class GameServiceImpl implements GameService
     @Override
     public void assignNextUser(Board board)
     {
-        BoardUser nextUser = boardUserService.getNextUser(board.getId());
+        int currentOrder = board.getOrderNo() % board.getUserCount() + 1;
+        BoardUser nextUser = boardUserService.getNextUser(board.getId(), currentOrder);
         board.setCurrentUser(userService.get(nextUser.getUserId()));
+        board.setOrderNo(board.getOrderNo() + 1);
         boardService.save(board);
     }
 
@@ -327,7 +338,6 @@ public class GameServiceImpl implements GameService
     private void updateBoard(PlayHelper helper, Board board)
     {
         helper.getUpdatedCells().stream().filter(BoardCell::isUsed).forEach(cell -> contentService.updateCell(cell));
-        board.setOrderNo(board.getOrderNo() + 1);
     }
 
     private void updateUserScore(PlayHelper helper)

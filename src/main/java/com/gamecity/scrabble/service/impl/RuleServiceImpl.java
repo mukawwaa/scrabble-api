@@ -11,8 +11,8 @@ import com.gamecity.scrabble.dao.CellRuleDao;
 import com.gamecity.scrabble.dao.RuleDao;
 import com.gamecity.scrabble.dao.TileRuleDao;
 import com.gamecity.scrabble.entity.CellRule;
-import com.gamecity.scrabble.entity.TileRule;
 import com.gamecity.scrabble.entity.Rule;
+import com.gamecity.scrabble.entity.TileRule;
 import com.gamecity.scrabble.service.RuleService;
 
 @Service(value = "ruleService")
@@ -23,12 +23,6 @@ public class RuleServiceImpl extends AbstractServiceImpl<Rule, RuleDao> implemen
 
     @Autowired
     private TileRuleDao letterRuleDao;
-
-    @Override
-    public Rule get(Long id)
-    {
-        return baseDao.get(id);
-    }
 
     @Override
     @Cacheable(value = Constants.Cache.CELL_RULES, key = "#ruleId")

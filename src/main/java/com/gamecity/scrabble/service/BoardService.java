@@ -7,9 +7,11 @@ import com.gamecity.scrabble.model.BoardParams;
 
 public interface BoardService extends BaseService<Board>
 {
-    Board checkBoardAvailable(Long boardId);
+    Board validateAndGetAvailableBoard(Long boardId);
 
-    Board checkBoardStarted(Long boardId);
+    Board validateAndGetStartedBoard(Long boardId);
+
+    Board validateAndGetWaitingBoard(Long boardId);
 
     Board create(BoardParams params);
 

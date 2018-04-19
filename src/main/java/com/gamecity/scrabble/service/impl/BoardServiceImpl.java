@@ -35,6 +35,9 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     private static Logger logger = LoggerFactory.getLogger(BoardServiceImpl.class);
 
     @Autowired
+    private BoardDao boardDao;
+
+    @Autowired
     private UserService userService;
 
     @Autowired
@@ -50,23 +53,42 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     private BoardUserHistoryService boardUserHistoryService;
 
     @Override
-    public Board checkBoardAvailable(Long id)
+    public Board validateAndGetAvailableBoard(Long id)
     {
-        Board board = get(id);
-        if (board == null || BoardStatus.TERMINATED.equals(board.getStatus()) || BoardStatus.FINISHED.equals(board.getStatus()))
+        Board board = boardDao.get(id);
+        if (board == null)
         {
             throw new BoardException(BoardError.INVALID_BOARD_ID);
+        }
+        else if (BoardStatus.TERMINATED.equals(board.getStatus()))
+        {
+            throw new BoardException(BoardError.BOARD_IS_TERMINATED);
+        }
+        else if (BoardStatus.FINISHED.equals(board.getStatus()))
+        {
+            throw new BoardException(BoardError.BOARD_IS_FINISHED);
         }
         return board;
     }
 
     @Override
-    public Board checkBoardStarted(Long id)
+    public Board validateAndGetStartedBoard(Long id)
     {
-        Board board = checkBoardAvailable(id);
+        Board board = validateAndGetAvailableBoard(id);
         if (!BoardStatus.STARTED.equals(board.getStatus()))
         {
             throw new BoardException(BoardError.BOARD_IS_NOT_STARTED);
+        }
+        return board;
+    }
+
+    @Override
+    public Board validateAndGetWaitingBoard(Long id)
+    {
+        Board board = validateAndGetAvailableBoard(id);
+        if (BoardStatus.STARTED.equals(board.getStatus()))
+        {
+            throw new BoardException(BoardError.BOARD_IS_STARTED);
         }
         return board;
     }
@@ -76,7 +98,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     public Board create(BoardParams params)
     {
         Rule rule = ruleService.get(params.getRuleId());
-        User user = userService.validateUser(params.getUserId());
+        User user = userService.validateAndGetUser(params.getUserId());
 
         Board board = new Board();
         board.setCurrentUser(user);
@@ -87,10 +109,11 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         board.setRule(rule);
         board.setStatus(BoardStatus.WAITING_PLAYERS);
         board.setUserCount(params.getUserCount());
-        save(board);
+        board = boardDao.save(board);
 
         contentService.updateContent(board.getId(), board.getOrderNo());
-        createBoardUserHistory(board, user.getId(), PlayerAction.CREATE);
+        createBoardUserHistory(board, PlayerAction.CREATE, user.getId());
+        validateGameStatus(board, PlayerAction.CREATE, user.getId());
 
         return board;
     }
@@ -101,8 +124,8 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     {
         ValidationUtils.validateParameters(boardId, userId);
 
-        userService.validateUser(userId);
-        Board board = checkBoardAvailable(boardId);
+        userService.validateAndGetUser(userId);
+        Board board = validateAndGetWaitingBoard(boardId);
 
         BoardUserHistory boardUserHistory = boardUserHistoryService.loadLastActionByUserId(boardId, userId);
         if (boardUserHistory != null && PlayerAction.JOIN.equals(boardUserHistory.getAction()))
@@ -110,12 +133,8 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new BoardException(BoardError.ALREADY_ON_BOARD, boardId);
         }
 
-        if (BoardStatus.STARTED.equals(board.getStatus()))
-        {
-            throw new BoardException(BoardError.BOARD_IS_STARTED);
-        }
-
-        createBoardUserHistory(board, userId, PlayerAction.JOIN);
+        createBoardUserHistory(board, PlayerAction.JOIN, userId);
+        validateGameStatus(board, PlayerAction.JOIN, userId);
     }
 
     @Override
@@ -124,8 +143,8 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
     {
         ValidationUtils.validateParameters(boardId, userId);
 
-        userService.validateUser(userId);
-        Board board = checkBoardAvailable(boardId);
+        userService.validateAndGetUser(userId);
+        Board board = validateAndGetWaitingBoard(boardId);
 
         BoardUserHistory boardUserHistory = boardUserHistoryService.loadLastActionByUserId(boardId, userId);
         if (boardUserHistory == null || PlayerAction.LEFT.equals(boardUserHistory.getAction()))
@@ -133,55 +152,49 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new BoardException(BoardError.NOT_ON_BOARD);
         }
 
-        if (BoardStatus.STARTED.equals(board.getStatus()))
-        {
-            throw new BoardException(BoardError.BOARD_IS_STARTED);
-        }
-
         if (board.getOwner().getId().equals(userId))
         {
             throw new BoardException(BoardError.OWNER_CANNOT_LEAVE_BOARD);
         }
 
-        createBoardUserHistory(board, userId, PlayerAction.LEFT);
+        createBoardUserHistory(board, PlayerAction.LEFT, userId);
+        validateGameStatus(board, PlayerAction.LEFT, userId);
     }
 
     @Override
     public List<Board> getActiveBoards()
     {
-        return baseDao.getAllByStatus(EnumSet.of(BoardStatus.WAITING_PLAYERS, BoardStatus.STARTED));
+        return boardDao.getAllByStatus(EnumSet.of(BoardStatus.WAITING_PLAYERS, BoardStatus.STARTED));
     }
 
     @Override
     public List<Board> getActiveBoardsByUser(Long userId)
     {
-        return baseDao.getUserBoardsByStatus(userId, EnumSet.of(BoardStatus.WAITING_PLAYERS, BoardStatus.STARTED));
+        return boardDao.getUserBoardsByStatus(userId, EnumSet.of(BoardStatus.WAITING_PLAYERS, BoardStatus.STARTED));
     }
 
     @Override
     @Transactional
     public Boolean stopExpired()
     {
-        baseDao.stopExpired();
+        boardDao.stopExpired();
         return true;
     }
 
     // ------------------------------------------------ private methods ------------------------------------------------
 
-    private void createBoardUserHistory(Board board, Long userId, PlayerAction action)
+    private void createBoardUserHistory(Board board, PlayerAction action, Long userId)
     {
         BoardUserHistory boardUserHistory = new BoardUserHistory();
         boardUserHistory.setBoardId(board.getId());
         boardUserHistory.setUserId(userId);
         boardUserHistory.setAction(action);
         boardUserHistoryService.save(boardUserHistory);
-
-        validateGameStatus(board, boardUserHistory);
     }
 
-    private void validateGameStatus(Board board, BoardUserHistory boardUserHistory)
+    private void validateGameStatus(Board board, PlayerAction action, Long userId)
     {
-        BoardUserCounter counter = boardUserHistoryService.calculatePlayerCount(board.getId(), boardUserHistory.getAction());
+        BoardUserCounter counter = boardUserHistoryService.calculatePlayerCount(board.getId(), action);
 
         if (board.getUserCount().equals(counter.getPlayerCount().intValue()))
         {
@@ -189,11 +202,11 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         }
         else if (board.getUserCount() > counter.getPlayerCount().intValue())
         {
-            contentService.updateWaitingPlayers(board.getId(), counter.getActionCount().intValue(), boardUserHistory);
+            contentService.updateWaitingPlayers(board.getId(), userId, counter.getActionCount().intValue());
         }
         else
         {
-            logger.warn("User {} exceeded the limit {} of board {}.", boardUserHistory.getUserId(), board.getUserCount(), board.getId());
+            logger.error("User {} exceeded the limit {} of board {}.", userId, board.getUserCount(), board.getId());
             throw new BoardException(BoardError.BOARD_IS_STARTED);
         }
     }

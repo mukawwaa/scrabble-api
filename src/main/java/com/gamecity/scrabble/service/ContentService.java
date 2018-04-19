@@ -1,6 +1,5 @@
 package com.gamecity.scrabble.service;
 
-import com.gamecity.scrabble.entity.BoardUserHistory;
 import com.gamecity.scrabble.model.BoardCell;
 import com.gamecity.scrabble.model.BoardContent;
 import com.gamecity.scrabble.model.BoardPlayer;
@@ -21,7 +20,7 @@ public interface ContentService
 
     void updateActivePlayers(Long boardId, Integer orderNo);
 
-    void updateWaitingPlayers(Long boardId, Integer orderNo, BoardUserHistory boardUserHistory);
+    void updateWaitingPlayers(Long boardId, Long userId, Integer orderNo);
 
     BoardContent getContent(Long boardId, Integer orderNo);
 
