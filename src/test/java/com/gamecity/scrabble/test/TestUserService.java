@@ -13,6 +13,8 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.gamecity.scrabble.dao.UserDao;
 import com.gamecity.scrabble.dao.UserRoleDao;
@@ -25,6 +27,7 @@ import com.gamecity.scrabble.service.impl.UserServiceImpl;
 
 public class TestUserService extends AbstractMockTest
 {
+    private static final long DEFAULT_USERID = 1L;
     private UserParams userParams;
 
     @InjectMocks
@@ -78,9 +81,9 @@ public class TestUserService extends AbstractMockTest
     public void testValidateUniqueUsername()
     {
         userParams.setUsername("admin");
+        when(userDao.findByUsername(eq("admin"))).thenReturn(mock(User.class));
         try
         {
-            when(userDao.findByUsername(eq("admin"))).thenReturn(mock(User.class));
             userService.createUser(userParams);
             fail("Failed to validate unique username.");
         }
@@ -155,7 +158,7 @@ public class TestUserService extends AbstractMockTest
     }
 
     @Test
-    public void testFindUnknownUserByUsername()
+    public void testValidateFindInvalidUsername()
     {
         String username = "tester";
         try
@@ -164,8 +167,112 @@ public class TestUserService extends AbstractMockTest
         }
         catch (UserException e)
         {
-            assertThat(e.getErrorCode(), equalTo(UserError.INVALID_USER_NAME.getCode()));
+            assertThat(e.getErrorCode(), equalTo(UserError.INVALID_USERNAME.getCode()));
         }
     }
 
+    @Test
+    public void testValidateFindInvalidUserid()
+    {
+        try
+        {
+            userService.validateAndGetUser(DEFAULT_USERID);
+        }
+        catch (UserException e)
+        {
+            assertThat(e.getErrorCode(), equalTo(UserError.INVALID_USERID.getCode()));
+        }
+    }
+
+    @Test
+    public void testValidateFindDisabledUser()
+    {
+        when(userDao.get(eq(DEFAULT_USERID))).thenAnswer(new Answer<User>()
+        {
+            @Override
+            public User answer(InvocationOnMock invocation) throws Throwable
+            {
+                User user = new User();
+                user.setEnabled(false);
+                return user;
+            }
+        });
+        try
+        {
+            userService.validateAndGetUser(DEFAULT_USERID);
+        }
+        catch (UserException e)
+        {
+            assertThat(e.getErrorCode(), equalTo(UserError.USER_DISABLED.getCode()));
+        }
+    }
+
+    @Test
+    public void testValidateFindAccountExpiredUser()
+    {
+        when(userDao.get(eq(DEFAULT_USERID))).thenAnswer(new Answer<User>()
+        {
+            @Override
+            public User answer(InvocationOnMock invocation) throws Throwable
+            {
+                User user = new User();
+                user.setAccountNonExpired(false);
+                return user;
+            }
+        });
+        try
+        {
+            userService.validateAndGetUser(DEFAULT_USERID);
+        }
+        catch (UserException e)
+        {
+            assertThat(e.getErrorCode(), equalTo(UserError.USER_ACCOUNT_EXPIRED.getCode()));
+        }
+    }
+
+    @Test
+    public void testValidateFindAccountLockedUser()
+    {
+        when(userDao.get(eq(DEFAULT_USERID))).thenAnswer(new Answer<User>()
+        {
+            @Override
+            public User answer(InvocationOnMock invocation) throws Throwable
+            {
+                User user = new User();
+                user.setAccountNonLocked(false);
+                return user;
+            }
+        });
+        try
+        {
+            userService.validateAndGetUser(DEFAULT_USERID);
+        }
+        catch (UserException e)
+        {
+            assertThat(e.getErrorCode(), equalTo(UserError.USER_ACCOUNT_LOCKED.getCode()));
+        }
+    }
+
+    @Test
+    public void testValidateFindCredentialsExpiredUser()
+    {
+        when(userDao.get(eq(DEFAULT_USERID))).thenAnswer(new Answer<User>()
+        {
+            @Override
+            public User answer(InvocationOnMock invocation) throws Throwable
+            {
+                User user = new User();
+                user.setCredentialsNonExpired(false);
+                return user;
+            }
+        });
+        try
+        {
+            userService.validateAndGetUser(DEFAULT_USERID);
+        }
+        catch (UserException e)
+        {
+            assertThat(e.getErrorCode(), equalTo(UserError.USER_CREDENTIALS_EXPIRED.getCode()));
+        }
+    }
 }

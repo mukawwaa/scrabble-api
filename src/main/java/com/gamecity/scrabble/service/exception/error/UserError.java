@@ -8,8 +8,12 @@ public enum UserError
     NAME_SURNAME_LENGTH_NOT_ENOUGH(4004, "Name or surname length is not enough!"), //
     NAME_SURNAME_NOT_CONTAINS_VALID_CHARACTERS(4005, "Name or surname must contains valid characters!"), //
     PASSWORD_STRENGTH_NOT_ENOUGH(4006, "Password must contain 1 capital letter, 1 short letter, 1 number and 1 special character!"), //
-    INVALID_USER_ID(4007, "Invalid user id!"),
-    INVALID_USER_NAME(4008, "Invalid user name!");
+    INVALID_USERID(4007, "Invalid user id!"), //
+    INVALID_USERNAME(4008, "Invalid username!"), //
+    USER_DISABLED(4009, "User is disabled!"), //
+    USER_ACCOUNT_EXPIRED(4010, "User account is expired!"), //
+    USER_ACCOUNT_LOCKED(4011, "User account is locked"), //
+    USER_CREDENTIALS_EXPIRED(4012, "User credentials is expired");
 
     private int code;
     private String message;

@@ -17,6 +17,7 @@ import com.gamecity.scrabble.entity.Board;
 import com.gamecity.scrabble.entity.BoardStatus;
 import com.gamecity.scrabble.entity.BoardUser;
 import com.gamecity.scrabble.entity.BoardUserHistory;
+import com.gamecity.scrabble.entity.User;
 import com.gamecity.scrabble.entity.WordLog;
 import com.gamecity.scrabble.model.BoardCell;
 import com.gamecity.scrabble.model.BoardTile;
@@ -76,7 +77,7 @@ public class GameServiceImpl implements GameService
         board.setStartDate(DateUtils.nowAsDate());
         board.setStatus(BoardStatus.STARTED);
         board.setOrderNo(Constants.BoardSettings.FIRST_ROUND);
-        boardService.save(board);
+        board = boardService.save(board);
 
         createBoardUsers(board.getId());
 
@@ -94,7 +95,7 @@ public class GameServiceImpl implements GameService
         ValidationUtils.validateParameters(rack, rack.getBoardId(), rack.getUserId(), rack.getTiles());
         Board board = boardService.validateAndGetStartedBoard(rack.getBoardId());
 
-        validateCurrentPlayer(board, rack);
+        validateCurrentPlayer(board.getCurrentUser(), rack.getUserId());
         validateRack(rack);
         calculateScore(board, rack, playTime);
         assignNextUser(board);
@@ -104,9 +105,9 @@ public class GameServiceImpl implements GameService
     }
 
     @Override
-    public void validateCurrentPlayer(Board board, Rack rack)
+    public void validateCurrentPlayer(User user, Long userId)
     {
-        if (!board.getCurrentUser().getId().equals(rack.getUserId()))
+        if (!user.getId().equals(userId))
         {
             throw new GameException(GameError.NOT_YOUR_TURN);
         }
@@ -135,12 +136,13 @@ public class GameServiceImpl implements GameService
             PlayHelper helper = new PlayHelper(board);
             locateRackTiles(helper, rack);
             findWords(helper);
+            validateWordsInDictionary(helper);
             findUnvalidatedWords(helper);
             linkNewWords(helper);
             addScore(helper);
             logWords(helper, board, playTime);
             updateUserScore(helper);
-            updateBoard(helper, board);
+            updateBoardCells(helper, board);
             contentService.updateRack(rack);
         }
     }
@@ -155,16 +157,16 @@ public class GameServiceImpl implements GameService
         boardService.save(board);
     }
 
-    // ---------------------------------------------------- private methods ----------------------------------------------------
-
-    private void locateRackTiles(PlayHelper helper, Rack rack)
+    @Override
+    public void locateRackTiles(PlayHelper helper, Rack rack)
     {
         rack.getTiles().stream().filter(RackTile::isUsed).forEach(rackTile -> {
             helper.setCellValue(rackTile.getRowNumber(), rackTile.getColumnNumber(), rackTile.getLetter());
         });
     }
 
-    private void findWords(PlayHelper helper)
+    @Override
+    public void findWords(PlayHelper helper)
     {
         // horizontal words
         IntStream.range(1, helper.getRule().getRowSize() + 1).forEach(rowNumber -> {
@@ -179,8 +181,30 @@ public class GameServiceImpl implements GameService
                 findWordsInPosition(helper, rowNumber, columnNumber, Position.VERTICAL);
             });
         });
+    }
 
-        validateWordsInDictionary(helper);
+    // ---------------------------------------------------- private methods ----------------------------------------------------
+
+    private void createBoardUsers(Long boardId)
+    {
+        List<BoardUserHistory> boardUserHistories = boardUserHistoryService.loadAllWaitingUsers(boardId);
+
+        int orderNo = 1;
+        for (BoardUserHistory history : boardUserHistories)
+        {
+            createBoardUser(history, orderNo);
+            orderNo = orderNo + 1;
+        }
+    }
+
+    private void createBoardUser(BoardUserHistory boardUserHistory, Integer orderNo)
+    {
+        BoardUser boardUser = new BoardUser();
+        boardUser.setBoardId(boardUserHistory.getBoardId());
+        boardUser.setUserId(boardUserHistory.getUserId());
+        boardUser.setJoinDate(boardUserHistory.getCreateDate());
+        boardUser.setOrderNo(orderNo);
+        boardUserService.save(boardUser);
     }
 
     private void findWordsInPosition(PlayHelper helper, Integer rowNumber, Integer columnNumber, Position position)
@@ -252,8 +276,7 @@ public class GameServiceImpl implements GameService
                     return true;
                 }
 
-                Predicate<Word> predicate =
-                    validatedWord -> validatedWord.getUsedCells().contains(unvalidatedWord.getUsedCells().stream().findFirst().get());
+                Predicate<Word> predicate = validatedWord -> validatedWord.getUsedCells().contains(unvalidatedWord.getUsedCells().stream().findFirst().get());
                 long matchCount = helper.getValidatedWords().stream().filter(predicate).count();
                 return matchCount == 0;
             }).collect(Collectors.toList());
@@ -270,8 +293,7 @@ public class GameServiceImpl implements GameService
         List<Word> linkedWords = helper.getValidatedWords().stream().filter(Word::isLinkedWithExistingLetter).collect(Collectors.toList());
         linkedWords.forEach(word -> followLinks(word, helper.getValidatedWords()));
 
-        List<Word> unlinkedWords =
-            helper.getValidatedWords().stream().filter(word -> !word.isLinkedWithExistingLetter()).collect(Collectors.toList());
+        List<Word> unlinkedWords = helper.getValidatedWords().stream().filter(word -> !word.isLinkedWithExistingLetter()).collect(Collectors.toList());
         if (!unlinkedWords.isEmpty())
         {
             throw new GameException(GameError.WORD_IS_NOT_LINKED, unlinkedWords.toString());
@@ -335,7 +357,7 @@ public class GameServiceImpl implements GameService
         });
     }
 
-    private void updateBoard(PlayHelper helper, Board board)
+    private void updateBoardCells(PlayHelper helper, Board board)
     {
         helper.getUpdatedCells().stream().filter(BoardCell::isUsed).forEach(cell -> contentService.updateCell(cell));
     }
@@ -345,28 +367,6 @@ public class GameServiceImpl implements GameService
         BoardUser boardUser = boardUserService.loadByUserId(helper.getBoardId(), helper.getUserId());
         Integer finalScore = boardUser.getScore() + helper.getScore();
         boardUser.setScore(finalScore);
-        boardUserService.save(boardUser);
-    }
-
-    private void createBoardUsers(Long boardId)
-    {
-        List<BoardUserHistory> boardUserHistories = boardUserHistoryService.loadAllWaitingUsers(boardId);
-
-        int orderNo = 1;
-        for (BoardUserHistory history : boardUserHistories)
-        {
-            createBoardUser(history, orderNo);
-            orderNo = orderNo + 1;
-        }
-    }
-
-    private void createBoardUser(BoardUserHistory boardUserHistory, Integer orderNo)
-    {
-        BoardUser boardUser = new BoardUser();
-        boardUser.setBoardId(boardUserHistory.getBoardId());
-        boardUser.setUserId(boardUserHistory.getUserId());
-        boardUser.setJoinDate(boardUserHistory.getCreateDate());
-        boardUser.setOrderNo(orderNo);
         boardUserService.save(boardUser);
     }
 }

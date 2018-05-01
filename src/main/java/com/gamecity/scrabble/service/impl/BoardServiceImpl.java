@@ -112,7 +112,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
         board = boardDao.save(board);
 
         contentService.updateContent(board.getId(), board.getOrderNo());
-        createBoardUserHistory(board, PlayerAction.CREATE, user.getId());
+        createBoardUserHistory(board.getId(), PlayerAction.CREATE, user.getId());
         validateGameStatus(board, PlayerAction.CREATE, user.getId());
 
         return board;
@@ -133,7 +133,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new BoardException(BoardError.ALREADY_ON_BOARD, boardId);
         }
 
-        createBoardUserHistory(board, PlayerAction.JOIN, userId);
+        createBoardUserHistory(board.getId(), PlayerAction.JOIN, userId);
         validateGameStatus(board, PlayerAction.JOIN, userId);
     }
 
@@ -157,7 +157,7 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
             throw new BoardException(BoardError.OWNER_CANNOT_LEAVE_BOARD);
         }
 
-        createBoardUserHistory(board, PlayerAction.LEFT, userId);
+        createBoardUserHistory(board.getId(), PlayerAction.LEFT, userId);
         validateGameStatus(board, PlayerAction.LEFT, userId);
     }
 
@@ -183,10 +183,10 @@ public class BoardServiceImpl extends AbstractServiceImpl<Board, BoardDao> imple
 
     // ------------------------------------------------ private methods ------------------------------------------------
 
-    private void createBoardUserHistory(Board board, PlayerAction action, Long userId)
+    private void createBoardUserHistory(Long boardId, PlayerAction action, Long userId)
     {
         BoardUserHistory boardUserHistory = new BoardUserHistory();
-        boardUserHistory.setBoardId(board.getId());
+        boardUserHistory.setBoardId(boardId);
         boardUserHistory.setUserId(userId);
         boardUserHistory.setAction(action);
         boardUserHistoryService.save(boardUserHistory);

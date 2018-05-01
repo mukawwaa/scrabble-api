@@ -1,5 +1,7 @@
 package com.gamecity.scrabble.test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.lang.RandomStringUtils;
@@ -9,6 +11,8 @@ import com.gamecity.scrabble.entity.BoardStatus;
 import com.gamecity.scrabble.entity.Rule;
 import com.gamecity.scrabble.entity.User;
 import com.gamecity.scrabble.model.BoardParams;
+import com.gamecity.scrabble.model.Rack;
+import com.gamecity.scrabble.model.RackTile;
 import com.gamecity.scrabble.model.UserParams;
 
 public abstract class AbstractBaseTest
@@ -62,5 +66,29 @@ public abstract class AbstractBaseTest
         rule.setRackSize(7);
         rule.setRowSize(15);
         return rule;
+    }
+
+    protected User createMockUser(Long userId)
+    {
+        User user = new User();
+        user.setId(userId);
+        return user;
+    }
+
+    protected Rack createMockRack(Long userId)
+    {
+        Rack rack = new Rack();
+        rack.setBoardId(DEFAULT_BOARD_ID);
+        rack.setUserId(userId);
+        List<RackTile> tiles = new ArrayList<RackTile>();
+        tiles.add(new RackTile(1, "A", 2));
+        tiles.add(new RackTile(2, "B", 3));
+        tiles.add(new RackTile(3, "K", 1));
+        tiles.add(new RackTile(4, "S", 2));
+        tiles.add(new RackTile(5, "E", 1));
+        tiles.add(new RackTile(6, "R", 1));
+        tiles.add(new RackTile(7, "M", 2));
+        rack.setTiles(tiles);
+        return rack;
     }
 }

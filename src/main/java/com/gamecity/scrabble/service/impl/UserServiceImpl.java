@@ -75,7 +75,7 @@ public class UserServiceImpl extends AbstractServiceImpl<User, UserDao> implemen
         User user = userDao.findByUsername(username);
         if (user == null)
         {
-            throw new UserException(UserError.INVALID_USER_NAME);
+            throw new UserException(UserError.INVALID_USERNAME);
         }
 
         List<BaseAuthority> authorities = new ArrayList<BaseAuthority>();
@@ -93,9 +93,25 @@ public class UserServiceImpl extends AbstractServiceImpl<User, UserDao> implemen
     public User validateAndGetUser(Long id)
     {
         User user = userDao.get(id);
-        if (user == null || !user.isEnabled() || !user.isAccountNonExpired() || !user.isAccountNonLocked() || !user.isCredentialsNonExpired())
+        if (user == null)
         {
-            throw new UserException(UserError.INVALID_USER_ID);
+            throw new UserException(UserError.INVALID_USERID);
+        }
+        else if (!user.isEnabled())
+        {
+            throw new UserException(UserError.USER_DISABLED);
+        }
+        else if (!user.isAccountNonExpired())
+        {
+            throw new UserException(UserError.USER_ACCOUNT_EXPIRED);
+        }
+        else if (!user.isAccountNonLocked())
+        {
+            throw new UserException(UserError.USER_ACCOUNT_LOCKED);
+        }
+        else if (!user.isCredentialsNonExpired())
+        {
+            throw new UserException(UserError.USER_CREDENTIALS_EXPIRED);
         }
         return user;
     }

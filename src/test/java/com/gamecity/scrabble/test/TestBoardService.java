@@ -59,12 +59,12 @@ public class TestBoardService extends AbstractMockTest
     public void before()
     {
         MockitoAnnotations.initMocks(boardService);
-        creator = mock(User.class);
+        creator = createMockUser(1L);
         when(userService.validateAndGetUser(eq(creator.getId()))).thenReturn(creator);
     }
 
     @Test
-    public void testValidateUnknownBoard()
+    public void testValidateGetInvalidBoard()
     {
         try
         {
@@ -78,7 +78,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateTerminatedBoard()
+    public void testValidateGetTerminatedBoard()
     {
         try
         {
@@ -102,7 +102,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateFinishedBoard()
+    public void testValidateGetFinishedBoard()
     {
         try
         {
@@ -126,7 +126,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateAvailableBoard()
+    public void testValidateGetAvailableBoard()
     {
         when(boardDao.get(eq(DEFAULT_BOARD_ID))).thenAnswer(new Answer<Board>()
         {
@@ -142,7 +142,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateNotStartedBoard()
+    public void testValidateGetNotStartedBoard()
     {
         try
         {
@@ -166,7 +166,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateStartedBoard()
+    public void testValidateGetStartedBoard()
     {
         when(boardDao.get(eq(DEFAULT_BOARD_ID))).thenAnswer(new Answer<Board>()
         {
@@ -182,7 +182,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateNotWaitingBoard()
+    public void testValidateGetNotWaitingBoard()
     {
         try
         {
@@ -206,7 +206,7 @@ public class TestBoardService extends AbstractMockTest
     }
 
     @Test
-    public void testValidateWaitingBoard()
+    public void testValidateGetWaitingBoard()
     {
         when(boardDao.get(eq(DEFAULT_BOARD_ID))).thenAnswer(new Answer<Board>()
         {
@@ -233,7 +233,7 @@ public class TestBoardService extends AbstractMockTest
             @Override
             public Board answer(InvocationOnMock invocation) throws Throwable
             {
-                Board board = (Board) invocation.getArguments()[0];
+                Board board = invocation.getArgument(0);
                 board.setId(DEFAULT_BOARD_ID);
                 return board;
             }
